@@ -82,7 +82,8 @@ mv %{buildroot}/usr/etc/neutron/*.ini %{buildroot}%{_sysconfdir}/neutron
 
 
 %files
-%doc AUTHORS CONTRIBUTING.rst LICENSE README.rst
+%license LICENSE
+%doc AUTHORS CONTRIBUTING.rst README.rst
 %config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/fwaas_driver.ini
 
 
