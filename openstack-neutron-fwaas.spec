@@ -80,11 +80,16 @@ export SKIP_PIP_INSTALL=1
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
 mv %{buildroot}/usr/etc/neutron/*.ini %{buildroot}%{_sysconfdir}/neutron
 
+# Create and populate configuration directory for L3 agent
+mkdir -p %{buildroot}%{_sysconfdir}/neutron/l3_agent
+ln -s ../fwaas_driver.ini %{buildroot}%{_sysconfdir}/neutron/l3_agent/fwaas_driver.conf
+
 
 %files
 %license LICENSE
 %doc AUTHORS CONTRIBUTING.rst README.rst
 %config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/fwaas_driver.ini
+%{_sysconfdir}/neutron/l3_agent/*.conf
 
 
 %files -n python-%{servicename}
