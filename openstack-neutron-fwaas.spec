@@ -82,7 +82,7 @@ mv %{buildroot}/usr/etc/neutron/*.ini %{buildroot}%{_sysconfdir}/neutron
 
 # Create and populate distribution configuration directory for L3/VPN agent
 mkdir -p %{buildroot}%{_datadir}/neutron/l3_agent
-ln -s ../fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3_agent/fwaas_driver.conf
+ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3_agent/fwaas_driver.conf
 
 
 %files
