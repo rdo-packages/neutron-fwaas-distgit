@@ -1,3 +1,4 @@
+%global release_name kilo
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
