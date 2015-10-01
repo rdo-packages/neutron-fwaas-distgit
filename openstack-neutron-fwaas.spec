@@ -2,19 +2,23 @@
 %global servicename neutron-fwaas
 %global type FWaaS
 
-%global milestone .0b3
+%global milestone .0rc1
 
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 
 Name:           openstack-%{servicename}
 Version:        7.0.0
-Release:        0.1%{?dist}
+Release:        0.2%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
-Source0:        http://launchpad.net/%{servicename}/%{release_name}/%{release_name}-3/+download/%{servicename}-%{upstream_version}.tar.gz
+Source0:        http://launchpad.net/%{servicename}/%{release_name}/%{release_name}-rc1/+download/%{servicename}-%{upstream_version}.tar.gz
+
+#
+# patches_base=7.0.0.0rc1
+#
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
@@ -112,5 +116,8 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
-* Wed Sep 16 2015 Ihar Hrachyshka <ihrachys@redhat.com> 1:7.0.0-0.1.0b3.el7
+* Thu Oct 01 2015 Ihar Hrachyshka <ihrachys@redhat.com> 1:7.0.0-0.2rc1.el7
+- Update to upstream 7.0.0.0rc1
+
+* Wed Sep 16 2015 Ihar Hrachyshka <ihrachys@redhat.com> 1:7.0.0-0.1b3.el7
 - Initial release for Liberty M3.
