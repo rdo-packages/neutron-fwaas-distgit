@@ -20,6 +20,7 @@ BuildArch:      noarch
 BuildRequires:  python2-devel
 BuildRequires:  python-pbr
 BuildRequires:  python-setuptools
+BuildRequires:	git
 
 Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
 Requires:       openstack-neutron >= %{epoch}:%{version}
@@ -68,11 +69,13 @@ This package contains Neutron %{type} test files.
 
 
 %prep
-%setup -q -n %{servicename}-%{upstream_version}
+%autosetup -n %{servicename}-%{upstream_version} -S git
 
 # Let's handle dependencies ourselves
 rm -f requirements.txt
 
+# Kill egg-info in order to generate new SOURCES.txt
+rm -rf neutron_fwaas.egg-info
 
 %build
 export PBR_VERSION=%{version}
