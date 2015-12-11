@@ -14,6 +14,7 @@ Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-mast
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
+BuildRequires:  python-neutron >= %{epoch}:%{version}
 BuildRequires:  python-pbr
 BuildRequires:  python-setuptools
 BuildRequires:	git
@@ -78,6 +79,14 @@ export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
 %{__python2} setup.py build
 
+# Generate configuration files
+PYTHONPATH=. tools/generate_config_file_samples.sh
+find etc -name *.sample | while read filename
+do
+    filedir=$(dirname $filename)
+    file=$(basename $filename .sample)
+    mv ${filename} ${filedir}/${file}
+done
 
 %install
 export PBR_VERSION=%{version}
@@ -86,7 +95,9 @@ export SKIP_PIP_INSTALL=1
 
 # Move config files to proper location
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
-mv %{buildroot}/usr/etc/neutron/*.ini %{buildroot}%{_sysconfdir}/neutron
+
+# The generated config files are not moved automatically by setup.py
+mv etc/*.ini %{buildroot}%{_sysconfdir}/neutron
 
 # Create and populate distribution configuration directory for L3/VPN agent
 mkdir -p %{buildroot}%{_datadir}/neutron/l3_agent
