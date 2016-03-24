@@ -1,16 +1,20 @@
+%define milestone .0rc1
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
 
+
+%{!?upstream_version: %global upstream_version %{version}%{?milestone}}
+
 Name:           openstack-%{servicename}
-Version:        XXX
-Release:        XXX%{?dist}
+Version:        8.0.0
+Release:        0.1%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
-Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-master.tar.gz
+Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-%{version}%{?milestone}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
@@ -122,3 +126,5 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
+* Thu Mar 24 2016 RDO <rdo-list@redhat.com> 8.0.0-0.1.0rc1
+- RC1 Rebuild for Mitaka rc1
