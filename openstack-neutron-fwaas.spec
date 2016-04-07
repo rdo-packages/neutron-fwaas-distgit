@@ -18,13 +18,13 @@ Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-%{ve
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
-BuildRequires:  python-neutron >= 1:%{version}
+BuildRequires:  python-neutron >= 1:8.0.0
 BuildRequires:  python-pbr
 BuildRequires:  python-setuptools
 BuildRequires:	git
 
 Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
-Requires:       openstack-neutron >= 1:%{version}
+Requires:       openstack-neutron >= 1:8.0.0
 
 %description
 This is a %{type} service plugin for Openstack Neutron (Networking) service.
@@ -34,7 +34,7 @@ This is a %{type} service plugin for Openstack Neutron (Networking) service.
 Summary:        Neutron %{type} Python libraries
 Group:          Applications/System
 
-Requires:       python-neutron >= 1:%{version}
+Requires:       python-neutron >= 1:8.0.0
 Requires:       python-alembic
 Requires:       python-eventlet
 Requires:       python-netaddr >= 0.7.12
