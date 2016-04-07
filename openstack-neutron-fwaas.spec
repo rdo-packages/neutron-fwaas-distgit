@@ -19,6 +19,8 @@ BuildRequires:  python-pbr
 BuildRequires:  python-setuptools
 BuildRequires:	git
 
+Requires:       ipset
+Requires:       iptables
 Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
 Requires:       openstack-neutron >= 1:8.0.0
 
