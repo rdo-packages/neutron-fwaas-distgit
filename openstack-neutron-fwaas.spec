@@ -8,7 +8,7 @@
 
 Name:           openstack-%{servicename}
 Version:        8.0.0
-Release:        1%{?milestone}%{?dist}
+Release:        3%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
@@ -115,7 +115,7 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
-* Sat Apr 09 2016 Alan Pevec <apevec AT redhat.com> 8.0.0-1
+* Sat Apr 09 2016 Alan Pevec <apevec AT redhat.com> 8.0.0-3
 - Update to Mitaka GA
 
 * Thu Mar 24 2016 RDO <rdo-list@redhat.com> 8.0.0-0.1.0rc1
