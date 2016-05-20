@@ -112,7 +112,8 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 %doc AUTHORS CONTRIBUTING.rst README.rst
 %config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/fwaas_driver.ini
 %{_datadir}/neutron/l3_agent/*.conf
-
+# TODO: see https://review.openstack.org/315826 for details, conflicts with core L3 agent
+%exclude %{_bindir}/neutron-l3-agent
 
 %files -n python-%{servicename}
 %{python2_sitelib}/%{modulename}
