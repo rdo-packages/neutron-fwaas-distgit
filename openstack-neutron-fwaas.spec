@@ -6,8 +6,8 @@
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 
 Name:           openstack-%{servicename}
-Version:        2015.1.0
-Release:        3%{?dist}
+Version:        2015.1.2
+Release:        1%{?dist}
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
@@ -110,3 +110,5 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
+* Wed Jun 22 2016 Alan Pevec <alan.pevec@redhat.com> 2015.1.2-1
+- Update to 2015.1.2
