@@ -35,19 +35,21 @@ Summary:        Neutron %{type} Python libraries
 Group:          Applications/System
 
 Requires:       python-neutron >= %{min_neutron_version}
-Requires:       python-alembic
+Requires:       python-alembic >= 0.8.4
 Requires:       python-eventlet
 Requires:       python-netaddr >= 0.7.12
-Requires:       python-oslo-config >= 2:1.4.0
-Requires:       python-oslo-db >= 1.1.0
-Requires:       python-oslo-log >= 1.0.0
-Requires:       python-oslo-messaging >= 1.4.0.0
-Requires:       python-oslo-serialization >= 1.0.0
-Requires:       python-oslo-utils >= 1.0.0
+Requires:       python-neutron-lib >= 0.4.0
+Requires:       python-oslo-config >= 2:3.14.0
+Requires:       python-oslo-db >= 4.10.0
+Requires:       python-oslo-log >= 1.14.0
+Requires:       python-oslo-messaging >= 5.2.0
+Requires:       python-oslo-serialization >= 1.10.0
+Requires:       python-oslo-service >= 1.10.0
+Requires:       python-oslo-utils >= 3.16.0
 Requires:       python-pbr
 Requires:       python-requests
-Requires:       python-six
-Requires:       python-sqlalchemy
+Requires:       python-six >= 1.9.0
+Requires:       python-sqlalchemy >= 1.0.10
 
 
 %description -n python-%{servicename}
