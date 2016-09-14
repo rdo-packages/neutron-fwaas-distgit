@@ -1,3 +1,4 @@
+%{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
@@ -11,7 +12,7 @@ Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
-Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-master.tar.gz
+Source0:        http://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
