@@ -129,3 +129,4 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
+# REMOVEME: error caused by commit http://git.openstack.org/cgit/openstack/neutron-fwaas/commit/?id=bde31b1d120417e5f9fdf468400fb8ec614c3ab3
