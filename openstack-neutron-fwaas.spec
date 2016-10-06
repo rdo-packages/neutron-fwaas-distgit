@@ -1,4 +1,3 @@
-%global milestone .0rc2
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -7,17 +6,13 @@
 
 Name:           openstack-%{servicename}
 Version:        9.0.0
-Release:        0.3%{?milestone}%{?dist}
+Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
-
-#
-# patches_base=9.0.0.0rc2
-#
 
 BuildArch:      noarch
 BuildRequires:  python2-devel
@@ -134,6 +129,9 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
+* Thu Oct 06 2016 Haikel Guemar <hguemar@fedoraproject.org> 1:9.0.0-1
+- Update to 9.0.0
+
 * Thu Sep 29 2016 Alan Pevec <alan.pevec@redhat.com> 1:9.0.0-0.3.0rc2
 - Update to 9.0.0.0rc2
 
