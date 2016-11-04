@@ -99,6 +99,20 @@ export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
 %{__python2} setup.py install -O1 --skip-build --root %{buildroot}
 
+# Create fake egg-info for the tempest plugin
+egg_path=%{buildroot}%{python2_sitelib}/%{modulename}-*.egg-info
+tempest_egg_path=%{buildroot}%{python2_sitelib}/%{modulename}_tests.egg-info
+mkdir $tempest_egg_path
+grep "tempest\|Tempest" %{modulename}.egg-info/entry_points.txt >$tempest_egg_path/entry_points.txt
+cat > $tempest_egg_path/PKG-INFO <<EOF
+Metadata-Version: 1.1
+Name: %{modulename}_tests
+Version: %{upstream_version}
+Summary: %{servicename} Tempest Plugin
+EOF
+# Remove any reference to Tempest plugin in the main package entry point
+sed -i "/tempest\|Tempest/d" $egg_path/entry_points.txt
+
 # Move config files to proper location
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
 
@@ -126,6 +140,6 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 %files -n python-%{servicename}-tests
 %{python2_sitelib}/%{modulename}/tests
-
+%{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
