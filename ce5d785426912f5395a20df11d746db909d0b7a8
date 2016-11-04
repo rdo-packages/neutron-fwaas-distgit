@@ -25,6 +25,30 @@
     },
     {
       "key": {
+        "uuid": "5adbc538_6cca03a3",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 1
+      },
+      "lineNbr": 109,
+      "author": {
+        "id": 111
+      },
+      "writtenOn": "2016-11-04T13:01:11Z",
+      "side": 1,
+      "message": "Will fix it, Thanks!",
+      "parentUuid": "5adbc538_6cf3e30a",
+      "range": {
+        "startLine": 109,
+        "startChar": 8,
+        "endLine": 109,
+        "endChar": 19
+      },
+      "revId": "ce5d785426912f5395a20df11d746db909d0b7a8",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
+      "unresolved": false
+    },
+    {
+      "key": {
         "uuid": "5adbc538_4cee2724",
         "filename": "openstack-neutron-fwaas.spec",
         "patchSetId": 1
@@ -36,6 +60,24 @@
       "writtenOn": "2016-11-04T12:48:44Z",
       "side": 1,
       "message": "I don\u0027t think it\u0027s related. We may need to fix it, but see other subpackages don\u0027t include it too (line 135 f.e.).",
+      "revId": "ce5d785426912f5395a20df11d746db909d0b7a8",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
+      "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "5adbc538_4cd54742",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 1
+      },
+      "lineNbr": 142,
+      "author": {
+        "id": 111
+      },
+      "writtenOn": "2016-11-04T13:01:11Z",
+      "side": 1,
+      "message": "We need to keep LICENSE file in each of the package, I will cover this in a separate review",
+      "parentUuid": "5adbc538_4cee2724",
       "revId": "ce5d785426912f5395a20df11d746db909d0b7a8",
       "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
       "unresolved": false
