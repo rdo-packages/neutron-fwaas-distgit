@@ -112,6 +112,10 @@ mv etc/*.ini %{buildroot}%{_sysconfdir}/neutron
 mkdir -p %{buildroot}%{_datadir}/neutron/l3_agent
 ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3_agent/fwaas_driver.conf
 
+# Move rootwrap files to proper location
+install -d -m 755 %{buildroot}%{_datarootdir}/neutron/rootwrap
+mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}/neutron/rootwrap
+
 
 %files
 %license LICENSE
@@ -125,6 +129,7 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 %{python2_sitelib}/%{modulename}
 %{python2_sitelib}/%{modulename}-%{version}-py%{python2_version}.egg-info
 %exclude %{python2_sitelib}/%{modulename}/tests
+%{_datarootdir}/neutron/rootwrap/fwaas-privsep.filters
 
 
 %files -n python-%{servicename}-tests
