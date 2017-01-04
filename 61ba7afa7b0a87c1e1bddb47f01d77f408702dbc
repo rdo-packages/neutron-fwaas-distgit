@@ -1,0 +1,27 @@
+{
+  "comments": [
+    {
+      "key": {
+        "uuid": "dab895d6_f98fb7ca",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 2
+      },
+      "lineNbr": 132,
+      "author": {
+        "id": 85
+      },
+      "writtenOn": "2017-01-04T15:43:16Z",
+      "side": 1,
+      "message": "why don\u0027t we use rootwrap.d like upstream default location?",
+      "range": {
+        "startLine": 132,
+        "startChar": 27,
+        "endLine": 132,
+        "endChar": 35
+      },
+      "revId": "61ba7afa7b0a87c1e1bddb47f01d77f408702dbc",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
+      "unresolved": false
+    }
+  ]
+}
