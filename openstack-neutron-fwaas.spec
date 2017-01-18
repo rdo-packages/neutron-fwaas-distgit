@@ -15,6 +15,7 @@ URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
 BuildArch:      noarch
+BuildRequires:  openstack-macros
 BuildRequires:  python2-devel
 BuildRequires:  python-neutron >= %{min_neutron_version}
 BuildRequires:  python-pbr
