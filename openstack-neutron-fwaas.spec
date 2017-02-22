@@ -1,4 +1,3 @@
-%global milestone .0rc2
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -7,17 +6,13 @@
 
 Name:           openstack-%{servicename}
 Version:        10.0.0
-Release:        0.2%{?milestone}%{?dist}
+Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
-
-#
-# patches_base=10.0.0.0rc2
-#
 
 BuildArch:      noarch
 BuildRequires:  openstack-macros
@@ -145,6 +140,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Wed Feb 22 2017 Alfredo Moralejo <amoralej@redhat.com> 1:10.0.0-1
+- Update to 10.0.0
+
 * Fri Feb 17 2017 Alfredo Moralejo <amoralej@redhat.com> 1:10.0.0-0.2.0rc2
 - Update to 10.0.0.0rc2
 
