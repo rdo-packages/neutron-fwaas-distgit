@@ -2,7 +2,9 @@
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
-%global min_neutron_version 1:8.0.0
+
+%define major_version %(echo %{version} | awk 'BEGIN { FS=\".\"}; {print $1}')
+%define next_version %(echo $((%{major_version} + 1)))
 
 Name:           openstack-%{servicename}
 Version:        XXX
@@ -15,9 +17,11 @@ URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
 BuildArch:      noarch
+BuildRequires:  gawk
 BuildRequires:  openstack-macros
 BuildRequires:  python2-devel
-BuildRequires:  python-neutron >= %{min_neutron_version}
+BuildRequires:  python-neutron >= %{epoch}:%{major_version}
+BuildConflicts: python-neutron >= %{epoch}:%{next_version}
 BuildRequires:  python-pbr
 BuildRequires:  python-setuptools
 BuildRequires:	git
@@ -25,7 +29,8 @@ BuildRequires:	git
 Requires:       ipset
 Requires:       iptables
 Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
-Requires:       openstack-neutron >= %{min_neutron_version}
+Requires:       openstack-neutron >= %{epoch}:%{major_version}
+Conflicts:      openstack-neutron >= %{epoch}:%{next_version}
 
 %description
 This is a %{type} service plugin for Openstack Neutron (Networking) service.
@@ -35,7 +40,8 @@ This is a %{type} service plugin for Openstack Neutron (Networking) service.
 Summary:        Neutron %{type} Python libraries
 Group:          Applications/System
 
-Requires:       python-neutron >= %{min_neutron_version}
+Requires:       python-neutron >= %{epoch}:%{major_version}
+Conflicts:      python-neutron >= %{epoch}:%{next_version}
 Requires:       python-alembic >= 0.8.4
 Requires:       python-eventlet
 Requires:       python-netaddr >= 0.7.12
