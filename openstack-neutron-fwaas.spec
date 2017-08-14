@@ -23,7 +23,6 @@ BuildRequires:  python2-devel
 BuildRequires:  python-neutron >= %{epoch}:%{major_version}
 BuildConflicts: python-neutron >= %{epoch}:%{next_version}
 BuildRequires:  python-pbr
-BuildRequires:  python-setuptools
 BuildRequires:	git
 
 Requires:       ipset
@@ -42,18 +41,18 @@ Group:          Applications/System
 
 Requires:       python-neutron >= %{epoch}:%{major_version}
 Conflicts:      python-neutron >= %{epoch}:%{next_version}
-Requires:       python-alembic >= 0.8.4
+Requires:       python-alembic >= 0.8.7
 Requires:       python-eventlet
 Requires:       python-netaddr >= 0.7.12
-Requires:       python-neutron-lib >= 1.1.0
-Requires:       python-oslo-config >= 2:3.14.0
-Requires:       python-oslo-db >= 4.15.0
-Requires:       python-oslo-log >= 3.11.0
-Requires:       python-oslo-messaging >= 5.14.0
+Requires:       python-neutron-lib >= 1.9.0
+Requires:       python-oslo-config >= 2:4.0.0
+Requires:       python-oslo-db >= 4.24.0
+Requires:       python-oslo-log >= 3.22.0
+Requires:       python-oslo-messaging >= 5.24.2
 Requires:       python-oslo-privsep >= 1.9.0
 Requires:       python-oslo-serialization >= 1.10.0
 Requires:       python-oslo-service >= 1.10.0
-Requires:       python-oslo-utils >= 3.18.0
+Requires:       python-oslo-utils >= 3.20.0
 Requires:       python-pbr
 Requires:       python-pyroute2
 Requires:       python-requests
