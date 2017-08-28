@@ -5,7 +5,7 @@
 %global min_neutron_version 1:8.0.0
 
 Name:           openstack-%{servicename}
-Version:        9.0.1
+Version:        9.0.2
 Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
@@ -129,6 +129,9 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 
 
 %changelog
+* Mon Aug 28 2017 rdo-trunk <javier.pena@redhat.com> 1:9.0.2-1
+- Update to 9.0.2
+
 * Wed Mar 29 2017 Alfredo Moralejo <amoralej@redhat.com> 1:9.0.1-1
 - Update to 9.0.1
 
