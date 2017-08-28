@@ -5,7 +5,7 @@
 %global min_neutron_version 1:8.0.0
 
 Name:           openstack-%{servicename}
-Version:        10.0.1
+Version:        10.1.0
 Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
@@ -140,6 +140,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Mon Aug 28 2017 rdo-trunk <javier.pena@redhat.com> 1:10.1.0-1
+- Update to 10.1.0
+
 * Thu Apr 13 2017 Alfredo Moralejo <amoralej@redhat.com> 1:10.0.1-1
 - Update to 10.0.1
 
