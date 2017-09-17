@@ -24,6 +24,7 @@ BuildRequires:  python-neutron >= %{epoch}:%{major_version}
 BuildConflicts: python-neutron >= %{epoch}:%{next_version}
 BuildRequires:  python-pbr
 BuildRequires:	git
+BuildRequires:  openstack-macros
 
 Requires:       ipset
 Requires:       iptables
@@ -83,7 +84,7 @@ This package contains Neutron %{type} test files.
 %autosetup -n %{servicename}-%{upstream_version} -S git
 
 # Let's handle dependencies ourselves
-rm -f requirements.txt
+%py_req_cleanup
 
 # Kill egg-info in order to generate new SOURCES.txt
 rm -rf neutron_fwaas.egg-info
