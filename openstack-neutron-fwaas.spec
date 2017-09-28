@@ -3,6 +3,8 @@
 %global servicename neutron-fwaas
 %global type FWaaS
 
+%global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
+
 %define major_version %(echo %{version} | awk 'BEGIN { FS=\".\"}; {print $1}')
 %define next_version %(echo $((%{major_version} + 1)))
 
@@ -33,7 +35,7 @@ Requires:       openstack-neutron >= %{epoch}:%{major_version}
 Conflicts:      openstack-neutron >= %{epoch}:%{next_version}
 
 %description
-This is a %{type} service plugin for Openstack Neutron (Networking) service.
+%{common_desc}
 
 
 %package -n python-%{servicename}
@@ -62,7 +64,7 @@ Requires:       python-sqlalchemy >= 1.0.10
 
 
 %description -n python-%{servicename}
-This is a %{type} service plugin for Openstack Neutron (Networking) service.
+%{common_desc}
 
 This package contains the Neutron %{type} Python library.
 
@@ -75,7 +77,7 @@ Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
 
 
 %description -n python-%{servicename}-tests
-This is a %{type} service plugin for Openstack Neutron (Networking) service.
+%{common_desc}
 
 This package contains Neutron %{type} test files.
 
@@ -87,7 +89,7 @@ This package contains Neutron %{type} test files.
 %py_req_cleanup
 
 # Kill egg-info in order to generate new SOURCES.txt
-rm -rf neutron_fwaas.egg-info
+rm -rf %{modulename}.egg-info
 
 %build
 export PBR_VERSION=%{version}
