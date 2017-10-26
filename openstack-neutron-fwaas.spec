@@ -25,8 +25,7 @@ BuildRequires:  python2-devel
 BuildRequires:  python-neutron >= %{epoch}:%{major_version}
 BuildConflicts: python-neutron >= %{epoch}:%{next_version}
 BuildRequires:  python-pbr
-BuildRequires:	git
-BuildRequires:  openstack-macros
+BuildRequires:  git
 
 Requires:       ipset
 Requires:       iptables
