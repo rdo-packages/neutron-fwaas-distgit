@@ -24,7 +24,7 @@ BuildRequires:  openstack-macros
 BuildRequires:  python2-devel
 BuildRequires:  python-neutron >= %{epoch}:%{major_version}
 BuildConflicts: python-neutron >= %{epoch}:%{next_version}
-BuildRequires:  python-pbr
+BuildRequires:  python2-pbr
 BuildRequires:  git
 
 Requires:       ipset
@@ -43,23 +43,22 @@ Group:          Applications/System
 
 Requires:       python-neutron >= %{epoch}:%{major_version}
 Conflicts:      python-neutron >= %{epoch}:%{next_version}
-Requires:       python-alembic >= 0.8.7
-Requires:       python-eventlet
-Requires:       python-netaddr >= 0.7.12
-Requires:       python-neutron-lib >= 1.9.0
-Requires:       python-oslo-config >= 2:4.0.0
-Requires:       python-oslo-db >= 4.24.0
-Requires:       python-oslo-log >= 3.22.0
-Requires:       python-oslo-messaging >= 5.24.2
-Requires:       python-oslo-privsep >= 1.9.0
-Requires:       python-oslo-serialization >= 1.10.0
-Requires:       python-oslo-service >= 1.10.0
-Requires:       python-oslo-utils >= 3.20.0
-Requires:       python-pbr
-Requires:       python-pyroute2
-Requires:       python-requests
-Requires:       python-six >= 1.9.0
-Requires:       python-sqlalchemy >= 1.0.10
+Requires:       python2-alembic >= 0.8.10
+Requires:       python2-eventlet
+Requires:       python2-netaddr >= 0.7.18
+Requires:       python-neutron-lib >= 1.13.0
+Requires:       python2-oslo-config >= 2:5.1.0
+Requires:       python2-oslo-db >= 4.27.0
+Requires:       python2-oslo-log >= 3.36.0
+Requires:       python2-oslo-messaging >= 5.29.0
+Requires:       python2-oslo-privsep >= 1.23.0
+Requires:       python2-oslo-service >= 1.24.0
+Requires:       python2-oslo-utils >= 3.33.0
+Requires:       python2-pbr
+Requires:       python2-pyroute2
+Requires:       python2-requests
+Requires:       python2-six >= 1.10.0
+Requires:       python2-sqlalchemy >= 1.0.10
 
 
 %description -n python-%{servicename}
