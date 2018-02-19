@@ -1,3 +1,4 @@
+%global milestone .0rc1
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -9,14 +10,18 @@
 %define next_version %(echo $((%{major_version} + 1)))
 
 Name:           openstack-%{servicename}
-Version:        XXX
-Release:        XXX%{?dist}
+Version:        12.0.0
+Release:        0.1%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
+
+#
+# patches_base=12.0.0.0rc1
+#
 
 BuildArch:      noarch
 BuildRequires:  gawk
@@ -146,3 +151,6 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Mon Feb 19 2018 RDO <dev@lists.rdoproject.org> 1:12.0.0-0.1.0rc1
+- Update to 12.0.0.0rc1
+
