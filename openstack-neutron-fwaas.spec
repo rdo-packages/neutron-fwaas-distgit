@@ -46,8 +46,8 @@ Conflicts:      python-neutron >= %{epoch}:%{next_version}
 Requires:       python2-alembic >= 0.8.10
 Requires:       python2-eventlet
 Requires:       python2-netaddr >= 0.7.18
-Requires:       python-neutron-lib >= 1.13.0
-Requires:       python2-oslo-config >= 2:5.1.0
+Requires:       python-neutron-lib >= 1.18.0
+Requires:       python2-oslo-config >= 2:5.2.0
 Requires:       python2-oslo-db >= 4.27.0
 Requires:       python2-oslo-log >= 3.36.0
 Requires:       python2-oslo-messaging >= 5.29.0
@@ -59,6 +59,7 @@ Requires:       python2-pyroute2
 Requires:       python2-requests
 Requires:       python2-six >= 1.10.0
 Requires:       python2-sqlalchemy >= 1.0.10
+Requires:       python2-zmq >= 14.3.1
 
 
 %description -n python-%{servicename}
