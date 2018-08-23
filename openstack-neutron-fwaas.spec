@@ -1,4 +1,4 @@
-%global milestone .0rc1
+%global milestone .0rc2
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -11,7 +11,7 @@
 
 Name:           openstack-%{servicename}
 Version:        13.0.0
-Release:        0.1%{?milestone}%{?dist}
+Release:        0.2%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
@@ -20,7 +20,7 @@ URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
 #
-# patches_base=13.0.0.0rc1
+# patches_base=13.0.0.0rc2
 #
 
 BuildArch:      noarch
@@ -152,6 +152,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Thu Aug 23 2018 RDO <dev@lists.rdoproject.org> 1:13.0.0-0.2.0rc1
+- Update to 13.0.0.0rc2
+
 * Mon Aug 20 2018 RDO <dev@lists.rdoproject.org> 1:13.0.0-0.1.0rc1
 - Update to 13.0.0.0rc1
 
