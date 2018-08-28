@@ -2,6 +2,7 @@
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
++%global rhosp 0
 
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
@@ -59,7 +60,9 @@ Requires:       python2-pyroute2
 Requires:       python2-requests
 Requires:       python2-six >= 1.10.0
 Requires:       python2-sqlalchemy >= 1.0.10
+%if 0%{rhosp} == 0
 Requires:       python-zmq >= 14.3.1
+%endif
 
 
 %description -n python-%{servicename}
