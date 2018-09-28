@@ -1,7 +1,30 @@
+# Macros for py2/py3 compatibility
+%if 0%{?fedora} || 0%{?rhel} > 7
+%global pyver %{python3_pkgversion}
+%global py3_entrypoint() \
+egg_path=%{buildroot}%{python3_sitelib}/%{1}-*.egg-info \
+tempest_egg_path=%{buildroot}%{python3_sitelib}/%{1}_tests.egg-info \
+mkdir $tempest_egg_path \
+echo %{1} >$tempest_egg_path/top_level.txt \
+grep "tempest\\|Tempest" %{1}.egg-info/entry_points.txt >$tempest_egg_path/entry_points.txt \
+sed -i "/tempest\\|Tempest/d" $egg_path/entry_points.txt \
+cp -r $egg_path/PKG-INFO $tempest_egg_path \
+sed -i "s/%{2}/%{1}_tests/g" $tempest_egg_path/PKG-INFO \
+%nil
+
+%else
+%global pyver 2
+%endif
+%global pyver_bin python%{pyver}
+%global pyver_sitelib %python%{pyver}_sitelib
+%global pyver_install %py%{pyver}_install
+%global pyver_build %py%{pyver}_build
+# End of macros for py2/py3 compatibility
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
 %global type FWaaS
+
 
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
@@ -21,15 +44,15 @@ Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{u
 BuildArch:      noarch
 BuildRequires:  gawk
 BuildRequires:  openstack-macros
-BuildRequires:  python2-devel
-BuildRequires:  python-neutron >= %{epoch}:%{major_version}
-BuildConflicts: python-neutron >= %{epoch}:%{next_version}
-BuildRequires:  python2-pbr
+BuildRequires:  python%{pyver}-devel
+BuildRequires:  python%{pyver}-neutron >= %{epoch}:%{major_version}
+BuildConflicts: python%{pyver}-neutron >= %{epoch}:%{next_version}
+BuildRequires:  python%{pyver}-pbr
 BuildRequires:  git
 
 Requires:       ipset
 Requires:       iptables
-Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
+Requires:       python%{pyver}-%{servicename} = %{epoch}:%{version}-%{release}
 Requires:       openstack-neutron >= %{epoch}:%{major_version}
 Conflicts:      openstack-neutron >= %{epoch}:%{next_version}
 
@@ -37,45 +60,53 @@ Conflicts:      openstack-neutron >= %{epoch}:%{next_version}
 %{common_desc}
 
 
-%package -n python-%{servicename}
+%package -n python%{pyver}-%{servicename}
 Summary:        Neutron %{type} Python libraries
+%{?python_provide:%python_provide python%{pyver}-%{servicename}}
 Group:          Applications/System
 
-Requires:       python-neutron >= %{epoch}:%{major_version}
-Conflicts:      python-neutron >= %{epoch}:%{next_version}
-Requires:       python2-alembic >= 0.8.10
-Requires:       python2-eventlet
-Requires:       python2-netaddr >= 0.7.18
-Requires:       python-neutron-lib >= 1.18.0
-Requires:       python2-oslo-config >= 2:5.2.0
-Requires:       python2-oslo-db >= 4.27.0
-Requires:       python2-oslo-log >= 3.36.0
-Requires:       python2-oslo-messaging >= 5.29.0
-Requires:       python2-oslo-privsep >= 1.23.0
-Requires:       python2-oslo-service >= 1.24.0
-Requires:       python2-oslo-utils >= 3.33.0
-Requires:       python2-pbr
-Requires:       python2-pyroute2
-Requires:       python2-requests
-Requires:       python2-six >= 1.10.0
-Requires:       python2-sqlalchemy >= 1.0.10
+Requires:       python%{pyver}-neutron >= %{epoch}:%{major_version}
+Conflicts:      python%{pyver}-neutron >= %{epoch}:%{next_version}
+Requires:       python%{pyver}-alembic >= 0.8.10
+Requires:       python%{pyver}-eventlet
+Requires:       python%{pyver}-netaddr >= 0.7.18
+Requires:       python%{pyver}-neutron-lib >= 1.18.0
+Requires:       python%{pyver}-oslo-config >= 2:5.2.0
+Requires:       python%{pyver}-oslo-db >= 4.27.0
+Requires:       python%{pyver}-oslo-log >= 3.36.0
+Requires:       python%{pyver}-oslo-messaging >= 5.29.0
+Requires:       python%{pyver}-oslo-privsep >= 1.23.0
+Requires:       python%{pyver}-oslo-service >= 1.24.0
+Requires:       python%{pyver}-oslo-utils >= 3.33.0
+Requires:       python%{pyver}-pbr
+Requires:       python%{pyver}-pyroute2
+Requires:       python%{pyver}-requests
+Requires:       python%{pyver}-six >= 1.10.0
+Requires:       python%{pyver}-sqlalchemy >= 1.0.10
+
+# Handle python2 exception
+%if %{pyver} == 2
 Requires:       python-zmq >= 14.3.1
+%else
+Requires:       python%{pyver}-zmq >= 14.3.1
+%endif
 
 
-%description -n python-%{servicename}
+%description -n python%{pyver}-%{servicename}
 %{common_desc}
 
 This package contains the Neutron %{type} Python library.
 
 
-%package -n python-%{servicename}-tests
+%package -n python%{pyver}-%{servicename}-tests
 Summary:        Neutron %{type} tests
+%{?python_provide:%python_provide python%{pyver}-%{servicename}-tests}
 Group:          Applications/System
 
-Requires:       python-%{servicename} = %{epoch}:%{version}-%{release}
+Requires:       python%{pyver}-%{servicename} = %{epoch}:%{version}-%{release}
 
 
-%description -n python-%{servicename}-tests
+%description -n python%{pyver}-%{servicename}-tests
 %{common_desc}
 
 This package contains Neutron %{type} test files.
@@ -93,10 +124,14 @@ rm -rf %{modulename}.egg-info
 %build
 export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
-%{__python2} setup.py build
+%{pyver_build}
 
 # Generate configuration files
-PYTHONPATH=. tools/generate_config_file_samples.sh
+PYTHONPATH=.
+for file in `ls etc/oslo-config-generator/*`; do
+    oslo-config-generator-%{pyver} --config-file=$file
+done
+
 find etc -name *.sample | while read filename
 do
     filedir=$(dirname $filename)
@@ -107,10 +142,14 @@ done
 %install
 export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
-%{__python2} setup.py install -O1 --skip-build --root %{buildroot}
+%{pyver_install}
 
 # Create fake egg-info for the tempest plugin
+%if %{pyver} == 2
 %py2_entrypoint %{modulename} %{servicename}
+%else
+%py3_entrypoint %{modulename} %{servicename}
+%endif
 
 # Move config files to proper location
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
@@ -135,16 +174,16 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 # TODO: see https://review.openstack.org/315826 for details, conflicts with core L3 agent
 %exclude %{_bindir}/neutron-l3-agent
 
-%files -n python-%{servicename}
-%{python2_sitelib}/%{modulename}
-%{python2_sitelib}/%{modulename}-%{version}-py%{python2_version}.egg-info
-%exclude %{python2_sitelib}/%{modulename}/tests
+%files -n python%{pyver}-%{servicename}
+%{pyver_sitelib}/%{modulename}
+%{pyver_sitelib}/%{modulename}-%{version}-py*.egg-info
+%exclude %{pyver_sitelib}/%{modulename}/tests
 %{_datarootdir}/neutron/rootwrap/fwaas-privsep.filters
 
 
-%files -n python-%{servicename}-tests
-%{python2_sitelib}/%{modulename}/tests
-%{python2_sitelib}/%{modulename}_tests.egg-info
+%files -n python%{pyver}-%{servicename}-tests
+%{pyver_sitelib}/%{modulename}/tests
+%{pyver_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
 
