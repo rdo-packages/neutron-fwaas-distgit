@@ -15,10 +15,12 @@
 %global servicename neutron-fwaas
 %global type FWaaS
 
+# FIXME(ykarel) need to hardcode as neutron_fwaas is not released with neutron
+%global neutron_version 14.0.0
 
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
-%define major_version %(echo %{version} | awk 'BEGIN { FS=\".\"}; {print $1}')
+%define major_version %(echo %{neutron_version} | awk 'BEGIN { FS=\".\"}; {print $1}')
 %define next_version %(echo $((%{major_version} + 1)))
 
 Name:           openstack-%{servicename}
