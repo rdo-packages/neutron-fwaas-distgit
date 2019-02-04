@@ -150,6 +150,7 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %doc AUTHORS CONTRIBUTING.rst README.rst
 %config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/fwaas_driver.ini
 %{_datadir}/neutron/l3_agent/*.conf
+%{_bindir}/neutron-fwaas-migrate-v1-to-v2
 # TODO: see https://review.openstack.org/315826 for details, conflicts with core L3 agent
 %exclude %{_bindir}/neutron-l3-agent
 
