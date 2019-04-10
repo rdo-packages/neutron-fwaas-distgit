@@ -1,4 +1,3 @@
-%global milestone .0rc1
 # Macros for py2/py3 compatibility
 %if 0%{?fedora} || 0%{?rhel} > 7
 %global pyver %{python3_pkgversion}
@@ -20,7 +19,7 @@
 
 Name:           openstack-%{servicename}
 Version:        14.0.0
-Release:        0.1%{?milestone}%{?dist}
+Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
@@ -28,8 +27,6 @@ License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
-#
-# patches_base=14.0.0.0rc1
 #
 
 BuildArch:      noarch
@@ -172,6 +169,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{pyver_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Wed Apr 10 2019 RDO <dev@lists.rdoproject.org> 1:14.0.0-1
+- Update to 14.0.0
+
 * Fri Mar 22 2019 RDO <dev@lists.rdoproject.org> 1:14.0.0-0.1.0rc1
 - Update to 14.0.0.0rc1
 
