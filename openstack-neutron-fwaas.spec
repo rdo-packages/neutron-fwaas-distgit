@@ -52,7 +52,7 @@ Requires:       python%{pyver}-neutron >= 1:14.0.0
 Requires:       python%{pyver}-alembic >= 0.8.10
 Requires:       python%{pyver}-eventlet
 Requires:       python%{pyver}-netaddr >= 0.7.18
-Requires:       python%{pyver}-neutron-lib >= 1.25.0
+Requires:       python%{pyver}-neutron-lib >= 1.26.0
 Requires:       python%{pyver}-os-ken >= 0.3.0
 Requires:       python%{pyver}-oslo-config >= 2:5.2.0
 Requires:       python%{pyver}-oslo-db >= 4.37.0
@@ -62,7 +62,7 @@ Requires:       python%{pyver}-oslo-privsep >= 1.32.0
 Requires:       python%{pyver}-oslo-service >= 1.24.0
 Requires:       python%{pyver}-oslo-utils >= 3.33.0
 Requires:       python%{pyver}-pbr
-Requires:       python%{pyver}-pyroute2 > 0.4.21
+Requires:       python%{pyver}-pyroute2 >= 0.5.3
 Requires:       python%{pyver}-requests
 Requires:       python%{pyver}-six >= 1.10.0
 Requires:       python%{pyver}-sqlalchemy >= 1.2.0
