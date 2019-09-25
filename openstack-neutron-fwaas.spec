@@ -52,7 +52,7 @@ Requires:       python%{pyver}-neutron >= 1:14.0.0
 Requires:       python%{pyver}-alembic >= 0.8.10
 Requires:       python%{pyver}-eventlet
 Requires:       python%{pyver}-netaddr >= 0.7.18
-Requires:       python%{pyver}-neutron-lib >= 1.25.0
+Requires:       python%{pyver}-neutron-lib >= 1.26.0
 Requires:       python%{pyver}-os-ken >= 0.3.0
 Requires:       python%{pyver}-oslo-config >= 2:5.2.0
 Requires:       python%{pyver}-oslo-db >= 4.37.0
