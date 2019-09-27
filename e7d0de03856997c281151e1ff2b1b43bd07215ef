@@ -22,6 +22,30 @@
       "revId": "e7d0de03856997c281151e1ff2b1b43bd07215ef",
       "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
       "unresolved": false
+    },
+    {
+      "key": {
+        "uuid": "7285562c_dd51ebe8",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 2
+      },
+      "lineNbr": 65,
+      "author": {
+        "id": 635
+      },
+      "writtenOn": "2019-09-27T10:18:38Z",
+      "side": 1,
+      "message": "Nice catch",
+      "parentUuid": "bcd57696_eb584db5",
+      "range": {
+        "startLine": 65,
+        "startChar": 42,
+        "endLine": 65,
+        "endChar": 48
+      },
+      "revId": "e7d0de03856997c281151e1ff2b1b43bd07215ef",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7",
+      "unresolved": false
     }
   ]
 }
