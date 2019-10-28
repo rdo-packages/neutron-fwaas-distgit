@@ -9,7 +9,7 @@
 %define next_version %(echo $((%{major_version} + 1)))
 
 Name:           openstack-%{servicename}
-Version:        12.0.1
+Version:        12.0.2
 Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
@@ -148,6 +148,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python2_sitelib}/%{modulename}_tests.egg-info
 
 %changelog
+* Mon Oct 28 2019 RDO <dev@lists.rdoproject.org> 1:12.0.2-1
+- Update to 12.0.2
+
 * Tue Nov 06 2018 RDO <dev@lists.rdoproject.org> 1:12.0.1-1
 - Update to 12.0.1
 
