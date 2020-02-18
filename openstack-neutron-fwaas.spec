@@ -17,7 +17,7 @@
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
 Name:           openstack-%{servicename}
-Version:        15.0.0
+Version:        15.0.1
 Release:        1%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
@@ -164,6 +164,9 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{pyver_sitelib}/%{modulename}/tests
 
 %changelog
+* Tue Feb 18 2020 RDO <dev@lists.rdoproject.org> 1:15.0.1-1
+- Update to 15.0.1
+
 * Wed Oct 16 2019 RDO <dev@lists.rdoproject.org> 1:15.0.0-1
 - Update to 15.0.0
 
