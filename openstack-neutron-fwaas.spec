@@ -1,14 +1,3 @@
-# Macros for py2/py3 compatibility
-%if 0%{?fedora} || 0%{?rhel} > 7
-%global pyver %{python3_pkgversion}
-%else
-%global pyver 2
-%endif
-%global pyver_bin python%{pyver}
-%global pyver_sitelib %python%{pyver}_sitelib
-%global pyver_install %py%{pyver}_install
-%global pyver_build %py%{pyver}_build
-# End of macros for py2/py3 compatibility
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -29,67 +18,62 @@ Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{u
 BuildArch:      noarch
 BuildRequires:  gawk
 BuildRequires:  openstack-macros
-BuildRequires:  python%{pyver}-devel
-BuildRequires:  python%{pyver}-neutron >= 1:14.0.0
-BuildRequires:  python%{pyver}-pbr > 4.0.0
+BuildRequires:  python3-devel
+BuildRequires:  python3-neutron >= 1:14.0.0
+BuildRequires:  python3-pbr > 4.0.0
 BuildRequires:  git
 
 Requires:       ipset
 Requires:       iptables
-Requires:       python%{pyver}-%{servicename} = %{epoch}:%{version}-%{release}
+Requires:       python3-%{servicename} = %{epoch}:%{version}-%{release}
 Requires:       openstack-neutron >= 1:14.0.0
 
 %description
 %{common_desc}
 
 
-%package -n python%{pyver}-%{servicename}
+%package -n python3-%{servicename}
 Summary:        Neutron %{type} Python libraries
-%{?python_provide:%python_provide python%{pyver}-%{servicename}}
+%{?python_provide:%python_provide python3-%{servicename}}
 Group:          Applications/System
 
-Requires:       python%{pyver}-neutron >= 1:14.0.0
-Requires:       python%{pyver}-alembic >= 0.8.10
-Requires:       python%{pyver}-eventlet
-Requires:       python%{pyver}-netaddr >= 0.7.18
-Requires:       python%{pyver}-neutron-lib >= 1.26.0
-Requires:       python%{pyver}-os-ken >= 0.3.0
-Requires:       python%{pyver}-oslo-config >= 2:5.2.0
-Requires:       python%{pyver}-oslo-db >= 4.37.0
-Requires:       python%{pyver}-oslo-log >= 3.36.0
-Requires:       python%{pyver}-oslo-messaging >= 5.29.0
-Requires:       python%{pyver}-oslo-privsep >= 1.32.0
-Requires:       python%{pyver}-oslo-service >= 1.24.0
-Requires:       python%{pyver}-oslo-utils >= 3.33.0
-Requires:       python%{pyver}-pbr
-Requires:       python%{pyver}-pyroute2 >= 0.5.3
-Requires:       python%{pyver}-requests
-Requires:       python%{pyver}-six >= 1.10.0
-Requires:       python%{pyver}-sqlalchemy >= 1.2.0
+Requires:       python3-neutron >= 1:14.0.0
+Requires:       python3-alembic >= 0.8.10
+Requires:       python3-eventlet
+Requires:       python3-netaddr >= 0.7.18
+Requires:       python3-neutron-lib >= 1.26.0
+Requires:       python3-os-ken >= 0.3.0
+Requires:       python3-oslo-config >= 2:5.2.0
+Requires:       python3-oslo-db >= 4.37.0
+Requires:       python3-oslo-log >= 3.36.0
+Requires:       python3-oslo-messaging >= 5.29.0
+Requires:       python3-oslo-privsep >= 1.32.0
+Requires:       python3-oslo-service >= 1.24.0
+Requires:       python3-oslo-utils >= 3.33.0
+Requires:       python3-pbr
+Requires:       python3-pyroute2 >= 0.5.3
+Requires:       python3-requests
+Requires:       python3-six >= 1.10.0
+Requires:       python3-sqlalchemy >= 1.2.0
 
-# Handle python2 exception
-%if %{pyver} == 2
-Requires:       python-zmq >= 14.3.1
-%else
-Requires:       python%{pyver}-zmq >= 14.3.1
-%endif
+Requires:       python3-zmq >= 14.3.1
 
 
-%description -n python%{pyver}-%{servicename}
+%description -n python3-%{servicename}
 %{common_desc}
 
 This package contains the Neutron %{type} Python library.
 
 
-%package -n python%{pyver}-%{servicename}-tests
+%package -n python3-%{servicename}-tests
 Summary:        Neutron %{type} tests
-%{?python_provide:%python_provide python%{pyver}-%{servicename}-tests}
+%{?python_provide:%python_provide python3-%{servicename}-tests}
 Group:          Applications/System
 
-Requires:       python%{pyver}-%{servicename} = %{epoch}:%{version}-%{release}
+Requires:       python3-%{servicename} = %{epoch}:%{version}-%{release}
 
 
-%description -n python%{pyver}-%{servicename}-tests
+%description -n python3-%{servicename}-tests
 %{common_desc}
 
 This package contains Neutron %{type} test files.
@@ -107,12 +91,12 @@ rm -rf %{modulename}.egg-info
 %build
 export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
-%{pyver_build}
+%{py3_build}
 
 # Generate configuration files
 PYTHONPATH=.
 for file in `ls etc/oslo-config-generator/*`; do
-    oslo-config-generator-%{pyver} --config-file=$file
+    oslo-config-generator --config-file=$file
 done
 
 find etc -name *.sample | while read filename
@@ -125,7 +109,7 @@ done
 %install
 export PBR_VERSION=%{version}
 export SKIP_PIP_INSTALL=1
-%{pyver_install}
+%{py3_install}
 
 # Move config files to proper location
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
@@ -151,15 +135,15 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 # TODO: see https://review.openstack.org/315826 for details, conflicts with core L3 agent
 %exclude %{_bindir}/neutron-l3-agent
 
-%files -n python%{pyver}-%{servicename}
-%{pyver_sitelib}/%{modulename}
-%{pyver_sitelib}/%{modulename}-%{version}-py*.egg-info
-%exclude %{pyver_sitelib}/%{modulename}/tests
+%files -n python3-%{servicename}
+%{python3_sitelib}/%{modulename}
+%{python3_sitelib}/%{modulename}-%{version}-py*.egg-info
+%exclude %{python3_sitelib}/%{modulename}/tests
 %{_datarootdir}/neutron/rootwrap/fwaas-privsep.filters
 
 
-%files -n python%{pyver}-%{servicename}-tests
-%{pyver_sitelib}/%{modulename}/tests
+%files -n python3-%{servicename}-tests
+%{python3_sitelib}/%{modulename}/tests
 
 %changelog
 
