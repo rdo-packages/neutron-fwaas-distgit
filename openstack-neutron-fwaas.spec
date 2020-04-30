@@ -1,3 +1,4 @@
+%global milestone .0rc1
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
@@ -6,14 +7,18 @@
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
 Name:           openstack-%{servicename}
-Version:        XXX
-Release:        XXX%{?dist}
+Version:        16.0.0
+Release:        0.1%{?milestone}%{?dist}
 Epoch:          1
 Summary:        Openstack Networking %{type} plugin
 
 License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
+
+#
+# patches_base=16.0.0.0rc1
+#
 
 BuildArch:      noarch
 BuildRequires:  gawk
@@ -146,4 +151,7 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 %{python3_sitelib}/%{modulename}/tests
 
 %changelog
+* Thu Apr 30 2020 RDO <dev@lists.rdoproject.org> 1:16.0.0-0.1.0rc1
+- Update to 16.0.0.0rc1
+
 
