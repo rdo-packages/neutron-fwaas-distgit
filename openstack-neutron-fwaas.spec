@@ -21,7 +21,7 @@ BuildRequires:  openstack-macros
 BuildRequires:  python3-devel
 BuildRequires:  python3-neutron >= 1:14.0.0
 BuildRequires:  python3-pbr > 4.0.0
-BuildRequires:  git
+BuildRequires:  git-core
 
 Requires:       ipset
 Requires:       iptables
