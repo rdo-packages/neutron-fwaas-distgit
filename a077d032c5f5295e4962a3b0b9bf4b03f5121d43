@@ -16,6 +16,23 @@
       "message": "recheck",
       "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
       "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "96b263c9_331ed980",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 3
+      },
+      "lineNbr": 39,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-05-19T13:41:05Z",
+      "side": 1,
+      "message": "with bobcat we don\u0027t need to maintain dependencies manually as done in https://github.com/rdo-packages/neutron-distgit/commit/5c6ecc780fd8b7e1a1d8ff1aae53d00f16b5d82f and https://github.com/rdo-packages/ovsdbapp-distgit/commit/41208ae3c9e7ef93e83be2d62490524aedf3fbd3 , so let\u0027s do that too.",
+      "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
     }
   ],
   "submitRequirementResults": []
