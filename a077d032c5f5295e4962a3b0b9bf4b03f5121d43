@@ -20,6 +20,52 @@
     {
       "unresolved": true,
       "key": {
+        "uuid": "a9924300_0ad0f962",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-05-20T05:14:47Z",
+      "side": 1,
+      "message": "Let\u0027s keep git as we using it in autosetup. and instead use git-core to avoid perl deps. Also let\u0027s keep openstack-macros and python3-devel in BuildRequires as we also using for some macros.",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 3
+      },
+      "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
+      "unresolved": true,
+      "key": {
+        "uuid": "9b026b9d_7140960f",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-05-20T05:14:47Z",
+      "side": 1,
+      "message": "This i think needs to be kept as first 2 system deps, and openstack-neutron also includes non-python deps as well.",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 29,
+        "endChar": 52
+      },
+      "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
+      "unresolved": true,
+      "key": {
         "uuid": "96b263c9_331ed980",
         "filename": "openstack-neutron-fwaas.spec",
         "patchSetId": 3
