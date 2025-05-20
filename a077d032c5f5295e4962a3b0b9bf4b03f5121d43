@@ -41,6 +41,30 @@
       "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
     },
     {
+      "unresolved": false,
+      "key": {
+        "uuid": "ba24d5b8_acfe84c1",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 3
+      },
+      "lineNbr": 24,
+      "author": {
+        "id": 534
+      },
+      "writtenOn": "2025-05-20T09:26:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "a9924300_0ad0f962",
+      "range": {
+        "startLine": 24,
+        "startChar": 0,
+        "endLine": 24,
+        "endChar": 3
+      },
+      "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
       "unresolved": true,
       "key": {
         "uuid": "9b026b9d_7140960f",
@@ -54,6 +78,30 @@
       "writtenOn": "2025-05-20T05:14:47Z",
       "side": 1,
       "message": "This i think needs to be kept as first 2 system deps, and openstack-neutron also includes non-python deps as well.",
+      "range": {
+        "startLine": 26,
+        "startChar": 0,
+        "endLine": 29,
+        "endChar": 52
+      },
+      "revId": "a077d032c5f5295e4962a3b0b9bf4b03f5121d43",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "9d8d20c1_622cfe99",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 3
+      },
+      "lineNbr": 29,
+      "author": {
+        "id": 534
+      },
+      "writtenOn": "2025-05-20T09:26:14Z",
+      "side": 1,
+      "message": "Done",
+      "parentUuid": "9b026b9d_7140960f",
       "range": {
         "startLine": 26,
         "startChar": 0,
