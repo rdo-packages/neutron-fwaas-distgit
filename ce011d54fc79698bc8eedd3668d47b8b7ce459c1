@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ef50890c_ea74aad5",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-05-29T11:11:05Z",
+      "side": 1,
+      "message": "worked in rdoinfo patch https://review.rdoproject.org/r/c/rdoinfo/+/57723, force merging",
+      "revId": "ce011d54fc79698bc8eedd3668d47b8b7ce459c1",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    }
+  ]
+}
