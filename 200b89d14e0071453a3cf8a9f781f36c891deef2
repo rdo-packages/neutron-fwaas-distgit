@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "ca36f0aa_12460068",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-05-29T11:11:53Z",
+      "side": 1,
+      "message": "worked in rdoinfo patch https://review.rdoproject.org/r/c/rdoinfo/+/57723, force merging, it\u0027s chicken-egg situation",
+      "revId": "200b89d14e0071453a3cf8a9f781f36c891deef2",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    }
+  ]
+}
