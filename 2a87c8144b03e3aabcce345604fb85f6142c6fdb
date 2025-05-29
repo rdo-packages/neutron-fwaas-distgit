@@ -1,0 +1,8 @@
+Code-Review+2: Yatin Karel <ykarel@redhat.com>
+Verified+2: Yatin Karel <ykarel@redhat.com>
+Workflow+1: Yatin Karel <ykarel@redhat.com>
+Submitted-by: Yatin Karel <ykarel@redhat.com>
+Submitted-at: Thu, 29 May 2025 11:16:07 +0000
+Reviewed-on: https://review.rdoproject.org/r/c/openstack/neutron-fwaas-distgit/+/57721
+Project: openstack/neutron-fwaas-distgit
+Branch: refs/heads/antelope-rdo
