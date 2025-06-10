@@ -136,3 +136,4 @@ mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}
 
 %changelog
 
+# REMOVEME: error caused by commit https://opendev.org/openstack/neutron-fwaas/commit/ed98cd8a2c87ccac513acfbf448f4795a18aac08
