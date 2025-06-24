@@ -105,9 +105,7 @@ done
 
 # Move config files to proper location
 install -d -m 755 %{buildroot}%{_sysconfdir}/neutron
-
-# The generated config files are not moved automatically by setup.py
-mv etc/*.ini %{buildroot}%{_sysconfdir}/neutron
+mv etc/*.ini etc/*.conf %{buildroot}%{_sysconfdir}/neutron
 
 # Create and populate distribution configuration directory for L3/VPN agent
 mkdir -p %{buildroot}%{_datadir}/neutron/l3_agent
@@ -117,12 +115,17 @@ ln -s %{_sysconfdir}/neutron/fwaas_driver.ini %{buildroot}%{_datadir}/neutron/l3
 install -d -m 755 %{buildroot}%{_datarootdir}/neutron/rootwrap
 mv %{buildroot}/usr/etc/neutron/rootwrap.d/*.filters %{buildroot}%{_datarootdir}/neutron/rootwrap
 
+# Make sure neutron-server loads new configuration file
+mkdir -p %{buildroot}/%{_datadir}/neutron/server
+ln -s %{_sysconfdir}/neutron/%{modulename}.conf %{buildroot}%{_datadir}/neutron/server/%{modulename}.conf
 
 %files
 %license LICENSE
 %doc AUTHORS CONTRIBUTING.rst README.rst
 %config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/fwaas_driver.ini
+%config(noreplace) %attr(0640, root, neutron) %{_sysconfdir}/neutron/%{modulename}.conf
 %{_datadir}/neutron/l3_agent/*.conf
+%{_datadir}/neutron/server/%{modulename}.conf
 
 %files -n python3-%{servicename}
 %{python3_sitelib}/%{modulename}
