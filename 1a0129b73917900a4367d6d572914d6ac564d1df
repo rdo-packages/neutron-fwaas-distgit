@@ -1,0 +1,8 @@
+Verified+2: Zuul CI <zuul@review.rdoproject.org>
+Code-Review+2: Sławek Kapłoński <skaplons@redhat.com>
+Workflow+1: Sławek Kapłoński <skaplons@redhat.com>
+Submitted-by: Zuul CI <zuul@review.rdoproject.org>
+Submitted-at: Fri, 27 Jun 2025 07:22:34 +0000
+Reviewed-on: https://review.rdoproject.org/r/c/openstack/neutron-fwaas-distgit/+/57896
+Project: openstack/neutron-fwaas-distgit
+Branch: refs/heads/rpm-master
