@@ -1,0 +1,8 @@
+Verified+2: Zuul CI <zuul@review.rdoproject.org>
+Code-Review+2: Sławek Kapłoński <skaplons@redhat.com>
+Workflow+1: Sławek Kapłoński <skaplons@redhat.com>
+Submitted-by: Zuul CI <zuul@review.rdoproject.org>
+Submitted-at: Mon, 30 Jun 2025 07:29:32 +0000
+Reviewed-on: https://review.rdoproject.org/r/c/openstack/neutron-fwaas-distgit/+/57147
+Project: openstack/neutron-fwaas-distgit
+Branch: refs/heads/epoxy-rdo
