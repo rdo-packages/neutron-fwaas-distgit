@@ -15,6 +15,14 @@ License:        ASL 2.0
 URL:            http://launchpad.net/neutron/
 Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
 
+Patch0001: 0001-Support-l3-stateless-firewall-based-on-OVN.patch
+Patch0002: 0002-Support-standard_attrs-for-fwaas-resources.patch
+Patch0003: 0003-db-add-missing-primary-key-in-firewall_group_associa.patch
+Patch0004: 0004-Set-service-type-when-registering-provider-config.patch
+Patch0005: 0005-Use-reader-context-for-DB-queries.patch
+Patch0006: 0006-Copy-alembic-migration-scripts-newer-than-2023.1-to-.patch
+
+
 BuildArch:      noarch
 BuildRequires:  gawk
 BuildRequires:  openstack-macros

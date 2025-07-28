@@ -1,0 +1,126 @@
+From d62dd885fdb896aa9fef78d16097d8b81497e955 Mon Sep 17 00:00:00 2001
+From: Sebastian Lohff <sebastian.lohff@sap.com>
+Date: Mon, 16 Jun 2025 15:19:17 +0200
+Subject: [PATCH] Use reader context for DB queries
+
+In most cases FirewallPluginDb has opened reader/writer contexts for its
+db access, but not in all.
+
+Once instance in which this can fail is when the port AFTER_UPDATE
+event handler is called. This method might call
+get_fwg_attached_to_port() outside of a transaction, which currently
+automatically opens one. This will explicitly fail when a transaction
+guard is hit with an exception:
+
+RuntimeError: Must not be called in a transaction
+
+To avoid this, we add a reader context to get_fwg_attached_to_port() and
+while we're at it we're adding this to all FirewallPluginDb methods that
+do a model_query db query - just to be on the safe side.
+
+Conflicts:
+    neutron_fwaas/db/firewall/v2/firewall_db_v2.py
+
+Upstream-master: https://review.opendev.org/c/openstack/neutron-fwaas/+/952852
+Resolves: #OSPRH-18583
+
+Change-Id: Iabb9bc6877059bcc46d64b7fc2d0728e6002610b
+Closes-Bug: #2114919
+(cherry picked from commit 13c9c9a433a805b7f3c5d1de2ea60cda574ac5e8)
+---
+ .../db/firewall/v2/firewall_db_v2.py          | 25 +++++++++++++------
+ 1 file changed, 17 insertions(+), 8 deletions(-)
+
+diff --git a/neutron_fwaas/db/firewall/v2/firewall_db_v2.py b/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
+index bf5abba53..5395e6159 100644
+--- a/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
++++ b/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
+@@ -206,18 +206,21 @@ class FirewallPluginDb(object):
+             result_filters=_list_firewall_policies_result_filter_hook)
+         return super(FirewallPluginDb, cls).__new__(cls, *args, **kwargs)
+ 
++    @db_api.CONTEXT_READER
+     def _get_firewall_group(self, context, id):
+         try:
+             return model_query.get_by_id(context, FirewallGroup, id)
+         except exc.NoResultFound:
+             raise f_exc.FirewallGroupNotFound(firewall_id=id)
+ 
++    @db_api.CONTEXT_READER
+     def _get_firewall_policy(self, context, id):
+         try:
+             return model_query.get_by_id(context, FirewallPolicy, id)
+         except exc.NoResultFound:
+             raise f_exc.FirewallPolicyNotFound(firewall_policy_id=id)
+ 
++    @db_api.CONTEXT_READER
+     def _get_firewall_rule(self, context, id):
+         try:
+             return model_query.get_by_id(context, FirewallRuleV2, id)
+@@ -612,6 +615,7 @@ class FirewallPluginDb(object):
+         policies = self.get_policies_with_rule(context, id) or None
+         return self._make_firewall_rule_dict(fwr, fields, policies=policies)
+ 
++    @db_api.CONTEXT_READER
+     def get_firewall_rules(self, context, filters=None, fields=None):
+         return model_query.get_collection(
+             context, FirewallRuleV2, self._make_firewall_rule_dict,
+@@ -654,8 +658,9 @@ class FirewallPluginDb(object):
+ 
+     def _check_rules_for_policy_is_valid(self, context, fwp, fwp_db,
+                                          rule_id_list, filters):
+-        rules_in_fwr_db = model_query.get_collection_query(
+-            context, FirewallRuleV2, filters=filters)
++        with db_api.CONTEXT_READER.using(context):
++            rules_in_fwr_db = model_query.get_collection_query(
++                context, FirewallRuleV2, filters=filters)
+         rules_dict = dict((fwr_db['id'], fwr_db) for fwr_db in rules_in_fwr_db)
+         for fwrule_id in rule_id_list:
+             if fwrule_id not in rules_dict:
+@@ -834,6 +839,7 @@ class FirewallPluginDb(object):
+         fwp = self._get_firewall_policy(context, id)
+         return self._make_firewall_policy_dict(fwp, fields)
+ 
++    @db_api.CONTEXT_READER
+     def get_firewall_policies(self, context, filters=None, fields=None):
+         return model_query.get_collection(
+             context, FirewallPolicy, self._make_firewall_policy_dict,
+@@ -876,6 +882,7 @@ class FirewallPluginDb(object):
+                 firewall_group_id=firewall_group_id).delete()
+         return
+ 
++    @db_api.CONTEXT_READER
+     def _get_default_fwg_id(self, context, tenant_id):
+         """Returns an id of default firewall group for given tenant or None"""
+         default_fwg = model_query.query_with_hooks(
+@@ -887,9 +894,10 @@ class FirewallPluginDb(object):
+ 
+     def get_fwg_attached_to_port(self, context, port_id):
+         """Return a firewall group ID that is attached to a given port"""
+-        fwg_port = model_query.query_with_hooks(
+-            context, FirewallGroupPortAssociation).\
+-            filter_by(port_id=port_id).first()
++        with db_api.CONTEXT_READER.using(context):
++            fwg_port = model_query.query_with_hooks(
++                context, FirewallGroupPortAssociation).\
++                filter_by(port_id=port_id).first()
+         if fwg_port:
+             return fwg_port.firewall_group_id
+         return None
+@@ -1111,9 +1119,10 @@ class FirewallPluginDb(object):
+             tenant_id = filters.get('tenant_id') if filters else None
+             tenant_id = tenant_id[0] if tenant_id else context.tenant_id
+             self._ensure_default_firewall_group(context, tenant_id)
+-        return model_query.get_collection(
+-            context, FirewallGroup, self._make_firewall_group_dict,
+-            filters=filters, fields=fields)
++        with db_api.CONTEXT_READER.using(context):
++            return model_query.get_collection(
++                context, FirewallGroup, self._make_firewall_group_dict,
++                filters=filters, fields=fields)
+ 
+ 
+ def _is_default(fwg_db):
+-- 
+2.50.1
+

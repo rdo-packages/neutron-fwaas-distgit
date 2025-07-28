@@ -1,0 +1,316 @@
+From af7a16d0e327d2acf0045741240468ddaed1825b Mon Sep 17 00:00:00 2001
+From: liushy <liuxie_11@163.com>
+Date: Thu, 8 Dec 2022 20:53:27 +0800
+Subject: [PATCH] Support standard_attrs for fwaas resources
+
+Now, this patch will support standard_attrs for
+firewall_group/firewall_rule/firewall_policy.
+
+Upstream-master: https://review.opendev.org/c/openstack/neutron-fwaas/+/866988
+Resolves: #OSPRH-18627
+
+Closes-Bug: #1986906
+Change-Id: Ib7b06d604a0950a104215bcf4386e14b77d20d12
+---
+ .../db/firewall/v2/firewall_db_v2.py          | 47 +++++++----
+ .../6941ce70131e_add_standard_attr_id.py      | 78 +++++++++++++++++++
+ .../alembic_migrations/versions/EXPAND_HEAD   |  2 +-
+ .../extensions/firewall_v2_stdattrs.py        | 20 +++++
+ .../tests/contrib/hooks/api_extensions-v2     |  1 +
+ .../services/firewall/test_fwaas_plugin_v2.py |  2 +
+ requirements.txt                              |  2 +-
+ 7 files changed, 135 insertions(+), 17 deletions(-)
+ create mode 100644 neutron_fwaas/db/migration/alembic_migrations/versions/2023.2/expand/6941ce70131e_add_standard_attr_id.py
+ create mode 100644 neutron_fwaas/extensions/firewall_v2_stdattrs.py
+
+diff --git a/neutron_fwaas/db/firewall/v2/firewall_db_v2.py b/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
+index e491bfc14..bf5abba53 100644
+--- a/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
++++ b/neutron_fwaas/db/firewall/v2/firewall_db_v2.py
+@@ -23,6 +23,8 @@ from neutron_lib.db import api as db_api
+ from neutron_lib.db import constants as db_constants
+ from neutron_lib.db import model_base
+ from neutron_lib.db import model_query
++from neutron_lib.db import resource_extend
++from neutron_lib.db import standard_attr
+ from neutron_lib.db import utils as db_utils
+ from neutron_lib import exceptions
+ from neutron_lib.exceptions import firewall_v2 as f_exc
+@@ -66,8 +68,8 @@ class HasDescription(object):
+         sa.String(db_constants.LONG_DESCRIPTION_FIELD_SIZE))
+ 
+ 
+-class FirewallRuleV2(model_base.BASEV2, model_base.HasId, HasName,
+-                     HasDescription, model_base.HasProject):
++class FirewallRuleV2(standard_attr.HasStandardAttributes, model_base.BASEV2,
++                     model_base.HasId, HasName, model_base.HasProject):
+     __tablename__ = "firewall_rules_v2"
+     shared = sa.Column(sa.Boolean)
+     protocol = sa.Column(sa.String(40))
+@@ -81,18 +83,19 @@ class FirewallRuleV2(model_base.BASEV2, model_base.HasId, HasName,
+     action = sa.Column(sa.Enum('allow', 'deny', 'reject',
+                                name='firewallrules_action'))
+     enabled = sa.Column(sa.Boolean)
++    api_collections = ['firewall_rules']
++    collection_resource_map = {"firewall_rules": "firewall_rule"}
++    tag_support = True
+ 
+ 
+-class FirewallGroup(model_base.BASEV2, model_base.HasId, HasName,
+-                    HasDescription, model_base.HasProject):
++class FirewallGroup(standard_attr.HasStandardAttributes, model_base.BASEV2,
++                    model_base.HasId, HasName, model_base.HasProject):
+     __tablename__ = 'firewall_groups_v2'
+     port_associations = orm.relationship(
+         'FirewallGroupPortAssociation',
+         backref=orm.backref('firewall_group_port_associations_v2',
+                             cascade='all, delete'))
+     name = sa.Column(sa.String(db_constants.NAME_FIELD_SIZE))
+-    description = sa.Column(
+-        sa.String(db_constants.LONG_DESCRIPTION_FIELD_SIZE))
+     ingress_firewall_policy_id = sa.Column(
+         sa.String(db_constants.UUID_FIELD_SIZE),
+         sa.ForeignKey('firewall_policies_v2.id'))
+@@ -102,6 +105,9 @@ class FirewallGroup(model_base.BASEV2, model_base.HasId, HasName,
+     admin_state_up = sa.Column(sa.Boolean)
+     status = sa.Column(sa.String(db_constants.STATUS_FIELD_SIZE))
+     shared = sa.Column(sa.Boolean)
++    api_collections = ['firewall_groups']
++    collection_resource_map = {"firewall_groups": "firewall_group"}
++    tag_support = True
+ 
+ 
+ class DefaultFirewallGroup(model_base.BASEV2, model_base.HasProjectPrimaryKey):
+@@ -146,12 +152,10 @@ class FirewallPolicyRuleAssociation(model_base.BASEV2):
+     position = sa.Column(sa.Integer)
+ 
+ 
+-class FirewallPolicy(model_base.BASEV2, model_base.HasId, HasName,
+-                     HasDescription, model_base.HasProject):
++class FirewallPolicy(standard_attr.HasStandardAttributes, model_base.BASEV2,
++                     model_base.HasId, HasName, model_base.HasProject):
+     __tablename__ = 'firewall_policies_v2'
+     name = sa.Column(sa.String(db_constants.NAME_FIELD_SIZE))
+-    description = sa.Column(
+-        sa.String(db_constants.LONG_DESCRIPTION_FIELD_SIZE))
+     rule_count = sa.Column(sa.Integer)
+     audited = sa.Column(sa.Boolean)
+     rule_associations = orm.relationship(
+@@ -160,6 +164,9 @@ class FirewallPolicy(model_base.BASEV2, model_base.HasId, HasName,
+         order_by='FirewallPolicyRuleAssociation.position',
+         collection_class=ordering_list('position', count_from=1))
+     shared = sa.Column(sa.Boolean)
++    api_collections = ['firewall_policies']
++    collection_resource_map = {"firewall_policies": "firewall_policy"}
++    tag_support = True
+ 
+ 
+ def _list_firewall_groups_result_filter_hook(query, filters):
+@@ -290,6 +297,10 @@ class FirewallPluginDb(object):
+                'action': firewall_rule['action'],
+                'enabled': firewall_rule['enabled'],
+                'shared': firewall_rule['shared']}
++        if hasattr(firewall_rule.standard_attr, 'id'):
++            res['standard_attr_id'] = firewall_rule.standard_attr.id
++            resource_extend.apply_funcs('firewall_rules', res,
++                                        firewall_rule)
+         return db_utils.resource_fields(res, fields)
+ 
+     def _make_firewall_policy_dict(self, firewall_policy, fields=None):
+@@ -303,6 +314,10 @@ class FirewallPluginDb(object):
+                'audited': firewall_policy['audited'],
+                'firewall_rules': fw_rules,
+                'shared': firewall_policy['shared']}
++        if hasattr(firewall_policy.standard_attr, 'id'):
++            res['standard_attr_id'] = firewall_policy.standard_attr.id
++            resource_extend.apply_funcs('firewall_policies', res,
++                                        firewall_policy)
+         return db_utils.resource_fields(res, fields)
+ 
+     def _make_firewall_group_dict(self, firewall_group_db, fields=None):
+@@ -320,6 +335,10 @@ class FirewallPluginDb(object):
+                'ports': fwg_ports,
+                'status': firewall_group_db['status'],
+                'shared': firewall_group_db['shared']}
++        if hasattr(firewall_group_db.standard_attr, 'id'):
++            res['standard_attr_id'] = firewall_group_db.standard_attr.id
++            resource_extend.apply_funcs('firewall_groups', res,
++                                        firewall_group_db)
+         return db_utils.resource_fields(res, fields)
+ 
+     def _get_policy_ordered_rules(self, context, policy_id):
+@@ -989,7 +1008,7 @@ class FirewallPluginDb(object):
+         # make sure that no group can be updated to have name=default
+         self._ensure_not_default_resource(fwg, 'firewall_group')
+         with db_api.CONTEXT_WRITER.using(context):
+-            fwg_db = self.get_firewall_group(context, id)
++            fwg_db = self._get_firewall_group(context, id)
+             if _is_default(fwg_db):
+                 attrs = [
+                     'name', 'description', 'admin_state_up',
+@@ -1009,10 +1028,8 @@ class FirewallPluginDb(object):
+                 del fwg['ports']
+             # If fwg is empty, skip updating
+             if fwg:
+-                count = context.session.query(
+-                    FirewallGroup).filter_by(id=id).update(fwg)
+-                if not count:
+-                    raise f_exc.FirewallGroupNotFound(firewall_id=id)
++                fwg_db.update(
++                    db_utils.filter_non_model_columns(fwg, FirewallGroup))
+         return self.get_firewall_group(context, id)
+ 
+     def update_firewall_group_status(self, context, id, status, not_in=None):
+diff --git a/neutron_fwaas/db/migration/alembic_migrations/versions/2023.2/expand/6941ce70131e_add_standard_attr_id.py b/neutron_fwaas/db/migration/alembic_migrations/versions/2023.2/expand/6941ce70131e_add_standard_attr_id.py
+new file mode 100644
+index 000000000..27213be89
+--- /dev/null
++++ b/neutron_fwaas/db/migration/alembic_migrations/versions/2023.2/expand/6941ce70131e_add_standard_attr_id.py
+@@ -0,0 +1,78 @@
++# Copyright 2023 EasyStack Limited
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++#
++
++"""add standard attributes
++
++Revision ID: 6941ce70131e
++Revises: f24e0d5e5bff
++Create Date: 2022-12-01 04:19:57.324584
++
++"""
++
++from alembic import op
++import sqlalchemy as sa
++
++# revision identifiers, used by Alembic.
++revision = '6941ce70131e'
++down_revision = 'f24e0d5e5bff'
++tables = ['firewall_groups_v2', 'firewall_rules_v2', 'firewall_policies_v2']
++
++
++standardattrs = sa.Table(
++    'standardattributes', sa.MetaData(),
++    sa.Column('id', sa.BigInteger(), primary_key=True, autoincrement=True),
++    sa.Column('resource_type', sa.String(length=255), nullable=False),
++    sa.Column('description', sa.String(length=255), nullable=True))
++
++
++def generate_records_for_existing(table):
++    model = sa.Table(table, sa.MetaData(),
++                     sa.Column('id', sa.String(length=36), nullable=False),
++                     sa.Column('description', sa.String(length=255),
++                               nullable=True),
++                     sa.Column('standard_attr_id', sa.BigInteger(),
++                               nullable=True))
++    session = sa.orm.Session(bind=op.get_bind())
++    with session.begin(subtransactions=True):
++        for row in session.query(model):
++            res = session.execute(
++                standardattrs.insert().values(resource_type=table,
++                                              description=row[1])
++            )
++            session.execute(
++                model.update().values(
++                    standard_attr_id=res.inserted_primary_key[0]).where(
++                        model.c.id == row[0])
++            )
++    session.commit()
++
++
++def upgrade():
++    for table in tables:
++        op.add_column(table, sa.Column('standard_attr_id', sa.BigInteger(),
++                                       nullable=True))
++        op.create_foreign_key(
++            constraint_name=None, source_table=table,
++            referent_table='standardattributes',
++            local_cols=['standard_attr_id'], remote_cols=['id'],
++            ondelete='CASCADE')
++        generate_records_for_existing(table)
++        op.alter_column(table, 'standard_attr_id', nullable=False,
++                        existing_type=sa.BigInteger(), existing_nullable=True,
++                        existing_server_default=False)
++        op.create_unique_constraint(
++            constraint_name='uniq_%s0standard_attr_id' % table,
++            table_name=table, columns=['standard_attr_id'])
++        op.drop_column(table, 'description')
+diff --git a/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD b/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
+index f323d45cd..38fcc3e24 100644
+--- a/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
++++ b/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
+@@ -1 +1 @@
+-f24e0d5e5bff
++6941ce70131e
+diff --git a/neutron_fwaas/extensions/firewall_v2_stdattrs.py b/neutron_fwaas/extensions/firewall_v2_stdattrs.py
+new file mode 100644
+index 000000000..c051c76ad
+--- /dev/null
++++ b/neutron_fwaas/extensions/firewall_v2_stdattrs.py
+@@ -0,0 +1,20 @@
++# Copyright 2023 EasyStack Limited
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from neutron_lib.api.definitions import firewall_v2_stdattrs as apidef
++from neutron_lib.api import extensions
++
++
++class Standard_attr_fwaas(extensions.APIExtensionDescriptor):
++    api_definition = apidef
+diff --git a/neutron_fwaas/tests/contrib/hooks/api_extensions-v2 b/neutron_fwaas/tests/contrib/hooks/api_extensions-v2
+index 7a7e7f950..bf908702d 100644
+--- a/neutron_fwaas/tests/contrib/hooks/api_extensions-v2
++++ b/neutron_fwaas/tests/contrib/hooks/api_extensions-v2
+@@ -1 +1,2 @@
+ NETWORK_API_EXTENSIONS+=,fwaas_v2
++NETWORK_API_EXTENSIONS+=,standard-attr-fwaas-v2
+diff --git a/neutron_fwaas/tests/unit/services/firewall/test_fwaas_plugin_v2.py b/neutron_fwaas/tests/unit/services/firewall/test_fwaas_plugin_v2.py
+index da71dab60..e96c802ef 100644
+--- a/neutron_fwaas/tests/unit/services/firewall/test_fwaas_plugin_v2.py
++++ b/neutron_fwaas/tests/unit/services/firewall/test_fwaas_plugin_v2.py
+@@ -396,6 +396,8 @@ class FirewallPluginV2TestCase(test_db_plugin.NeutronDbPluginV2TestCase):
+         res = req.get_response(self.ext_api)
+         self.assertEqual(expected_code, res.status_int)
+         response = self.deserialize(self.fmt, res)
++        if 'standard_attr_id' in response:
++            del response['standard_attr_id']
+         if expected_body:
+             self.assertEqual(expected_body, response)
+         return response
+diff --git a/requirements.txt b/requirements.txt
+index 8cae770d4..41b61c47a 100644
+--- a/requirements.txt
++++ b/requirements.txt
+@@ -11,7 +11,7 @@ eventlet!=0.18.3,!=0.20.1,>=0.18.2 # MIT
+ netaddr>=0.7.18 # BSD
+ SQLAlchemy>=1.4.23 # MIT
+ alembic>=1.6.5 # MIT
+-neutron-lib>=2.19.0 # Apache-2.0
++neutron-lib>=3.6.1 # Apache-2.0
+ os-ken >= 0.3.0 # Apache-2.0
+ oslo.config>=5.2.0 # Apache-2.0
+ oslo.db>=4.37.0 # Apache-2.0
+-- 
+2.50.1
+
