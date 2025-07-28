@@ -1,0 +1,1264 @@
+From 43758fd3141cc04b4f5d0d4a5a2e3e3daf3e70cb Mon Sep 17 00:00:00 2001
+From: liushy <liuxie_11@163.com>
+Date: Tue, 14 Jun 2022 14:32:06 +0800
+Subject: [PATCH] Support l3 stateless firewall based on OVN
+
+This patch implements a driver based on OVN, it creates port_group
+for every l3 firewall_group and adds relating ports to port_group,
+it also transforms firewall_rules to stateless acls.
+
+Tests will been put in next patch.
+
+NOTE: it depends on ML2/OVN.
+
+Upstream-master: https://review.opendev.org/c/openstack/neutron-fwaas/+/845756
+Resolves: #OSPRH-15215
+
+Partially-Implements: blueprint support-l3-firewall-for-ovn-driver
+Related-Bug: #1971958
+Change-Id: If153645b3da198ef1746e98af80ac6f0a0b41bf9
+(cherry picked from commit 8de0c36cb92f3adb3150d1ab8f3edae045440762)
+Signed-off-by: Slawek Kaplonski <skaplons@redhat.com>
+---
+ devstack/plugin.sh                            |  11 +-
+ devstack/settings                             |   1 +
+ .../firewall/service_drivers/ovn/__init__.py  |   0
+ .../firewall/service_drivers/ovn/acl.py       | 237 +++++++++
+ .../firewall/service_drivers/ovn/constants.py |  44 ++
+ .../service_drivers/ovn/exceptions.py         |  33 ++
+ .../service_drivers/ovn/firewall_l3_driver.py | 358 ++++++++++++++
+ .../firewall/service_drivers/ovn/__init__.py  |   0
+ .../ovn/test_firewall_l3_driver.py            | 452 ++++++++++++++++++
+ ...ewall-for-ovn-driver-3f5632ad13cf35fd.yaml |  15 +
+ 10 files changed, 1150 insertions(+), 1 deletion(-)
+ create mode 100644 neutron_fwaas/services/firewall/service_drivers/ovn/__init__.py
+ create mode 100644 neutron_fwaas/services/firewall/service_drivers/ovn/acl.py
+ create mode 100644 neutron_fwaas/services/firewall/service_drivers/ovn/constants.py
+ create mode 100644 neutron_fwaas/services/firewall/service_drivers/ovn/exceptions.py
+ create mode 100644 neutron_fwaas/services/firewall/service_drivers/ovn/firewall_l3_driver.py
+ create mode 100644 neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/__init__.py
+ create mode 100644 neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/test_firewall_l3_driver.py
+ create mode 100644 releasenotes/notes/support-l3-firewall-for-ovn-driver-3f5632ad13cf35fd.yaml
+
+diff --git a/devstack/plugin.sh b/devstack/plugin.sh
+index 04cef2347..e7455ae70 100755
+--- a/devstack/plugin.sh
++++ b/devstack/plugin.sh
+@@ -38,12 +38,21 @@ function install_fwaas() {
+     fi
+ }
+ 
++function is_ovn_enabled {
++    [[ $Q_AGENT == "ovn" ]] && return 0
++    return 1
++}
++
+ function configure_fwaas_v2() {
+     # Add conf file
+     cp $NEUTRON_FWAAS_DIR/etc/neutron_fwaas.conf.sample $NEUTRON_FWAAS_CONF
+     neutron_server_config_add $NEUTRON_FWAAS_CONF
+     inicomment $NEUTRON_FWAAS_CONF service_providers service_provider
+-    iniadd $NEUTRON_FWAAS_CONF service_providers service_provider $NEUTRON_FWAAS_SERVICE_PROVIDERV2
++    if is_ovn_enabled; then
++        iniadd $NEUTRON_FWAAS_CONF service_providers service_provider $NEUTRON_FWAAS_SERVICE_PROVIDERV2_OVN
++    else
++        iniadd $NEUTRON_FWAAS_CONF service_providers service_provider $NEUTRON_FWAAS_SERVICE_PROVIDERV2
++    fi
+ 
+     neutron_fwaas_configure_driver fwaas_v2
+     if is_service_enabled q-l3; then
+diff --git a/devstack/settings b/devstack/settings
+index e3b3b58fa..90af2cac9 100644
+--- a/devstack/settings
++++ b/devstack/settings
+@@ -8,5 +8,6 @@ NEUTRON_FWAAS_CONF_FILE=neutron_fwaas.conf
+ NEUTRON_FWAAS_CONF=$NEUTRON_CONF_DIR/$NEUTRON_FWAAS_CONF_FILE
+ 
+ NEUTRON_FWAAS_SERVICE_PROVIDERV2=${NEUTRON_FWAAS_SERVICE_PROVIDERV2:-FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.agents.agents.FirewallAgentDriver:default}
++NEUTRON_FWAAS_SERVICE_PROVIDERV2_OVN=${NEUTRON_FWAAS_SERVICE_PROVIDERV2:-FIREWALL_V2:fwaas_db:neutron_fwaas.services.firewall.service_drivers.ovn.firewall_l3_driver.OVNFwaasDriver:default}
+ 
+ enable_service q-fwaas-v2
+diff --git a/neutron_fwaas/services/firewall/service_drivers/ovn/__init__.py b/neutron_fwaas/services/firewall/service_drivers/ovn/__init__.py
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/neutron_fwaas/services/firewall/service_drivers/ovn/acl.py b/neutron_fwaas/services/firewall/service_drivers/ovn/acl.py
+new file mode 100644
+index 000000000..9de721ea6
+--- /dev/null
++++ b/neutron_fwaas/services/firewall/service_drivers/ovn/acl.py
+@@ -0,0 +1,237 @@
++# Copyright 2022 EasyStack, Inc.
++# All rights reserved.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from neutron.common.ovn import utils as ovn_utils
++from neutron_lib import constants as const
++
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    constants as ovn_const
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    exceptions as ovn_fw_exc
++
++
++def acl_direction(direction, port_group=None):
++    if direction == const.INGRESS_DIRECTION:
++        portdir = 'inport'
++    else:
++        portdir = 'outport'
++    return '%s == @%s' % (portdir, port_group)
++
++
++def acl_ethertype(rule):
++    match = ''
++    ip_version = None
++    icmp = None
++    if rule['ip_version'] == const.IP_VERSION_4:
++        match = ' && ip4'
++        ip_version = 'ip4'
++        icmp = 'icmp4'
++    elif rule['ip_version'] == const.IP_VERSION_6:
++        match = ' && ip6'
++        ip_version = 'ip6'
++        icmp = 'icmp6'
++    return match, ip_version, icmp
++
++
++def acl_ip(rule, ip_version):
++    src_ip = rule.get('source_ip_address')
++    dst_ip = rule.get('destination_ip_address')
++    src = ' && %s.src == %s' % (ip_version, src_ip) if src_ip else ''
++    dst = ' && %s.dst == %s' % (ip_version, dst_ip) if dst_ip else ''
++    return src + dst
++
++
++def get_min_max_ports_from_range(port_range):
++    if not port_range:
++        return [None, None]
++    min_port, sep, max_port = port_range.partition(":")
++    if not max_port:
++        max_port = min_port
++    return [int(min_port), int(max_port)]
++
++
++def acl_protocol_ports(protocol, port_range, is_dst=True):
++    match = ''
++    min_port, max_port = get_min_max_ports_from_range(port_range)
++    dir = 'dst' if is_dst else 'src'
++    if protocol in ovn_const.TRANSPORT_PROTOCOLS:
++        if min_port is not None and min_port == max_port:
++            match += ' && %s.%s == %d' % (protocol, dir, min_port)
++        else:
++            if min_port is not None:
++                match += ' && %s.%s >= %d' % (protocol, dir, min_port)
++            if max_port is not None:
++                match += ' && %s.%s <= %d' % (protocol, dir, max_port)
++    return match
++
++
++def acl_protocol_and_ports(rule, icmp):
++    match = ''
++    protocol = rule.get('protocol')
++    if protocol is None:
++        return match
++    src_port = rule.get('source_port')
++    dst_port = rule.get('destination_port')
++    if protocol in ovn_const.TRANSPORT_PROTOCOLS:
++        match += ' && %s' % protocol
++        match += acl_protocol_ports(protocol, src_port, is_dst=False)
++        match += acl_protocol_ports(protocol, dst_port)
++    elif protocol in ovn_const.ICMP_PROTOCOLS:
++        protocol = icmp
++        match += ' && %s' % protocol
++    return match
++
++
++def acl_action_and_priority(rule, direction):
++    action = rule['action']
++    pos = rule.get('position', 0)
++    if action == 'deny' and rule.get(ovn_const.DEFAULT_RULE, False):
++        return (ovn_const.ACL_ACTION_DROP,
++                ovn_const.ACL_PRIORITY_DEFAULT)
++    if direction == const.INGRESS_DIRECTION:
++        priority = ovn_const.ACL_PRIORITY_INGRESS
++    else:
++        priority = ovn_const.ACL_PRIORITY_EGRESS
++    if action == 'allow':
++        return (ovn_const.ACL_ACTION_ALLOW_STATELESS,
++                priority - pos)
++    elif action == 'deny':
++        return (ovn_const.ACL_ACTION_DROP,
++                priority - pos)
++    elif action == 'reject':
++        return (ovn_const.ACL_ACTION_REJECT,
++                priority - pos)
++
++
++def acl_entry_for_port_group(port_group, rule, direction, match):
++    dir_map = {const.INGRESS_DIRECTION: 'from-lport',
++               const.EGRESS_DIRECTION: 'to-lport'}
++    action, priority = acl_action_and_priority(rule, direction)
++
++    acl = {"port_group": port_group,
++           "priority": priority,
++           "action": action,
++           "log": False,
++           "name": [],
++           "severity": [],
++           "direction": dir_map[direction],
++           "match": match,
++           ovn_const.OVN_FWR_EXT_ID_KEY: rule['id']}
++    return acl
++
++
++def get_rule_acl_for_port_group(port_group, rule, direction):
++    match = acl_direction(direction, port_group=port_group)
++    ip_match, ip_version, icmp = acl_ethertype(rule)
++    match += ip_match
++    match += acl_ip(rule, ip_version)
++    match += acl_protocol_and_ports(rule, icmp)
++    return acl_entry_for_port_group(port_group, rule, direction, match)
++
++
++def update_ports_for_pg(nb_idl, txn, pg_name, ports_add=None,
++                        ports_delete=None):
++    if ports_add is None:
++        ports_add = []
++    if ports_delete is None:
++        ports_delete = []
++    # Add ports to port_group
++    for port_id in ports_add:
++        txn.add(nb_idl.pg_add_ports(
++            pg_name, port_id))
++    for port_id in ports_delete:
++        txn.add(nb_idl.pg_del_ports(
++            pg_name, port_id, if_exists=True))
++
++
++def get_default_acls_for_pg(nb_idl, pg_name):
++    nb_acls = nb_idl.pg_acl_list(pg_name).execute(check_error=True)
++    default_acl_list = []
++    for nb_acl in nb_acls:
++        # Get acl whose external_ids has firewall_rule_id, then
++        # append it to list if its value equal to default_rule_id
++        ext_ids = getattr(nb_acl, 'external_ids', {})
++        if (ext_ids.get(ovn_const.OVN_FWR_EXT_ID_KEY) ==
++                ovn_const.DEFAULT_RULE_ID):
++            default_acl_list.append(nb_acl.uuid)
++    return default_acl_list
++
++
++def process_rule_for_pg(nb_idl, txn, pg_name, rule, direction,
++                        op=ovn_const.OP_ADD):
++    dir_map = {const.INGRESS_DIRECTION: 'from-lport',
++               const.EGRESS_DIRECTION: 'to-lport'}
++    supported_ops = [ovn_const.OP_ADD, ovn_const.OP_DEL,
++                     ovn_const.OP_MOD]
++    if op not in supported_ops:
++        raise ovn_fw_exc.OperatorNotSupported(
++            operator=op, valid_operators=supported_ops)
++
++    acl = get_rule_acl_for_port_group(
++        pg_name, rule, direction)
++
++    # Add acl
++    if op == ovn_const.OP_ADD:
++        txn.add(nb_idl.pg_acl_add(**acl, may_exist=True))
++    # Modify/Delete acl
++    else:
++        nb_acls = nb_idl.pg_acl_list(pg_name).execute(check_error=True)
++        for nb_acl in nb_acls:
++            # Get acl whose external_ids has firewall_rule_id,
++            # then change it if its value equal to rule's
++            ext_ids = getattr(nb_acl, 'external_ids', {})
++            if (ext_ids.get(ovn_const.OVN_FWR_EXT_ID_KEY) ==
++                    rule['id'] and dir_map[direction] == nb_acl.direction):
++                if op == ovn_const.OP_MOD:
++                    txn.add(nb_idl.db_set(
++                        'ACL', nb_acl.uuid,
++                        ('match', acl['match']),
++                        ('action', acl['action'])))
++                elif op == ovn_const.OP_DEL:
++                    txn.add(nb_idl.pg_acl_del(
++                        acl['port_group'],
++                        acl['direction'],
++                        nb_acl.priority,
++                        acl['match']))
++                break
++
++
++def create_pg_for_fwg(nb_idl, fwg_id):
++    pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++    # Add port_group
++    with nb_idl.transaction(check_error=True) as txn:
++        ext_ids = {ovn_const.OVN_FWG_EXT_ID_KEY: fwg_id}
++        txn.add(nb_idl.pg_add(name=pg_name, acls=[],
++                              external_ids=ext_ids))
++
++
++def add_default_acls_for_pg(nb_idl, txn, pg_name):
++    # Traffic is default denied, ipv4 or ipv6 with two directions,
++    # so number of default acls is 4
++    default_rule_v4 = {'action': 'deny', 'ip_version': 4,
++                       'id': ovn_const.DEFAULT_RULE_ID,
++                       ovn_const.DEFAULT_RULE: True}
++    default_rule_v6 = {'action': 'deny', 'ip_version': 6,
++                       'id': ovn_const.DEFAULT_RULE_ID,
++                       ovn_const.DEFAULT_RULE: True}
++    for dir in [const.EGRESS_DIRECTION, const.INGRESS_DIRECTION]:
++        process_rule_for_pg(nb_idl, txn, pg_name,
++                            default_rule_v4,
++                            dir,
++                            op=ovn_const.OP_ADD)
++        process_rule_for_pg(nb_idl, txn, pg_name,
++                            default_rule_v6,
++                            dir,
++                            op=ovn_const.OP_ADD)
+diff --git a/neutron_fwaas/services/firewall/service_drivers/ovn/constants.py b/neutron_fwaas/services/firewall/service_drivers/ovn/constants.py
+new file mode 100644
+index 000000000..606c54ee1
+--- /dev/null
++++ b/neutron_fwaas/services/firewall/service_drivers/ovn/constants.py
+@@ -0,0 +1,44 @@
++# Copyright 2022 EasyStack, Inc.
++# All rights reserved.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from neutron_lib import constants as const
++
++OVN_FWG_EXT_ID_KEY = 'neutron:firewall_group_id'
++OVN_FWR_EXT_ID_KEY = 'neutron:firewall_rule_id'
++ACL_ACTION_DROP = 'drop'
++ACL_ACTION_REJECT = 'reject'
++ACL_ACTION_ALLOW_STATELESS = 'allow-stateless'
++ACL_ACTION_ALLOW = 'allow'
++ACL_PRIORITY_INGRESS = 2000
++ACL_PRIORITY_EGRESS = 2000
++ACL_PRIORITY_DEFAULT = 1001
++OP_ADD = 'add'
++OP_DEL = 'del'
++OP_MOD = 'mod'
++DEFAULT_RULE = 'is_default'
++DEFAULT_RULE_ID = 'default_rule'
++
++# Drop acls of ipv4 or ipv6 with two directions, so number of
++# default acls is 4
++DEFAULT_ACL_NUM = 4
++
++# Group of transport protocols supported
++TRANSPORT_PROTOCOLS = (const.PROTO_NAME_TCP,
++                       const.PROTO_NAME_UDP,
++                       const.PROTO_NAME_SCTP)
++
++# Group of versions of the ICMP protocol supported
++ICMP_PROTOCOLS = (const.PROTO_NAME_ICMP,
++                  const.PROTO_NAME_IPV6_ICMP)
+diff --git a/neutron_fwaas/services/firewall/service_drivers/ovn/exceptions.py b/neutron_fwaas/services/firewall/service_drivers/ovn/exceptions.py
+new file mode 100644
+index 000000000..517b1b004
+--- /dev/null
++++ b/neutron_fwaas/services/firewall/service_drivers/ovn/exceptions.py
+@@ -0,0 +1,33 @@
++# Copyright 2022 EasyStack, Inc.
++# All rights reserved.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from neutron._i18n import _
++from neutron_lib import exceptions as n_exc
++
++
++class MechanismDriverNotFound(n_exc.NotFound):
++    message = _("None of the supported mechanism drivers found: "
++                "%(mechanism_drivers)s. Check your configuration.")
++
++
++class ProtocolNotSupported(n_exc.NeutronException):
++    message = _('The protocol "%(protocol)s" is not supported. Valid '
++                'protocols are: %(valid_protocols)s; or protocol '
++                'numbers ranging from 0 to 255.')
++
++
++class OperatorNotSupported(n_exc.NeutronException):
++    message = _('The operator "%(operator)s" is not supported. Valid '
++                'operators are: %(valid_operators)s.')
+diff --git a/neutron_fwaas/services/firewall/service_drivers/ovn/firewall_l3_driver.py b/neutron_fwaas/services/firewall/service_drivers/ovn/firewall_l3_driver.py
+new file mode 100644
+index 000000000..715bd86bd
+--- /dev/null
++++ b/neutron_fwaas/services/firewall/service_drivers/ovn/firewall_l3_driver.py
+@@ -0,0 +1,358 @@
++# Copyright 2022 EasyStack, Inc.
++# All rights reserved.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from neutron.common.ovn import utils as ovn_utils
++from neutron_lib import constants as const
++from oslo_log import log as logging
++
++from neutron_fwaas.services.firewall.service_drivers import driver_api
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    acl as ovn_acl
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    constants as ovn_const
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    exceptions as ovn_fw_exc
++
++LOG = logging.getLogger(__name__)
++
++
++class OVNFwaasDriver(driver_api.FirewallDriverDB):
++    """OVN l3 acl driver to implement
++
++    Depends on ml2/ovn, use ovn_client to put acl rules to the lsp which
++    is a peer of the lrp.
++    """
++
++    def __init__(self, service_plugin):
++        super(OVNFwaasDriver, self).__init__(service_plugin)
++        self._mech = None
++
++    def is_supported_l2_port(self, port):
++        return False
++
++    def is_supported_l3_port(self, port):
++        return True
++
++    def start_rpc_listener(self):
++        return []
++
++    @property
++    def _nb_ovn(self):
++        return self._mech_driver.nb_ovn
++
++    @property
++    def _mech_driver(self):
++        if self._mech is None:
++            drivers = ('ovn', 'ovn-sync')
++            for driver in drivers:
++                try:
++                    self._mech = \
++                        self._core_plugin.mechanism_manager.mech_drivers[
++                            driver].obj
++                    break
++                except KeyError:
++                    pass
++            else:
++                raise ovn_fw_exc.MechanismDriverNotFound(
++                    mechanism_drivers=drivers)
++        return self._mech
++
++    def _init_firewall_group(self, txn, fwg_id):
++        """Add port_group for firewall_group
++
++        After create port_group for fwg, add default drop acls to it
++        """
++        pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++        ovn_acl.create_pg_for_fwg(self._nb_ovn, fwg_id)
++        ovn_acl.add_default_acls_for_pg(self._nb_ovn, txn, pg_name)
++        LOG.info("Successfully created port_group for firewall_group: %s",
++                 fwg_id)
++
++    def _add_rules_for_firewall_group(self, context, txn, fwg_id,
++                                      rule_id=None):
++        """Add all rules belong to firewall_group
++        """
++        fwg_with_rules = \
++            self.firewall_db.make_firewall_group_dict_with_rules(
++                context, fwg_id)
++        egress_rule_list = fwg_with_rules['egress_rule_list']
++        ingress_rule_list = fwg_with_rules['ingress_rule_list']
++        pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++        rule_map = {const.INGRESS_DIRECTION: ingress_rule_list,
++                    const.EGRESS_DIRECTION: egress_rule_list}
++        for dir, rule_list in rule_map.items():
++            position = 0
++            for rule in rule_list:
++                rule['position'] = position
++                position += 1
++                if not rule['enabled']:
++                    continue
++                if rule_id:
++                    # For specify rule id
++                    if rule_id == rule['id']:
++                        ovn_acl.process_rule_for_pg(self._nb_ovn, txn,
++                                                    pg_name, rule, dir,
++                                                    op=ovn_const.OP_ADD)
++                        LOG.info("Successfully enable rule %(rule)s to "
++                                 "firewall_group %(fwg)s",
++                                 {"rule": rule_id,
++                                  "fwg": fwg_id})
++                        break
++                else:
++                    ovn_acl.process_rule_for_pg(self._nb_ovn, txn, pg_name,
++                                                rule, dir,
++                                                op=ovn_const.OP_ADD)
++        LOG.info("Successfully added rules for firewall_group %s",
++                 fwg_id)
++
++    def _clear_rules_for_firewall_group(self, context, txn, fwg_id):
++        """Clear acls belong to firewall_group
++
++        Delete all rule acls but remain the default acls
++        """
++        pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++        default_acls = ovn_acl.get_default_acls_for_pg(self._nb_ovn, pg_name)
++        if len(default_acls) == ovn_const.DEFAULT_ACL_NUM:
++            txn.add(self._nb_ovn.db_set(
++                'Port_Group', pg_name,
++                ('acls', default_acls)))
++        else:
++            ovn_acl.add_default_acls_for_pg(self._nb_ovn, txn, pg_name)
++        LOG.info("Successfully clear rules for firewall_group %s",
++                 fwg_id)
++
++    def _process_acls_by_policies_or_rule(self, context, policy_ids,
++                                          rule_info=None,
++                                          op=ovn_const.OP_ADD):
++        """Delete/Update/Add the acls by rule or policies
++        """
++        ing_fwg_list = []
++        eg_fwg_list = []
++        if not policy_ids:
++            return
++        for policy_id in policy_ids:
++            ing_fwg_ids, eg_fwg_ids = self.firewall_db.get_fwgs_with_policy(
++                context, policy_id)
++            ing_fwg_list += ing_fwg_ids
++            eg_fwg_list += eg_fwg_ids
++
++        if not rule_info and op == ovn_const.OP_ADD:
++            # Add acls
++            rule_info = {}
++            for fwg_id in list(set(ing_fwg_list + eg_fwg_list)):
++                pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++                with self._nb_ovn.transaction(check_error=True) as txn:
++                    if self._nb_ovn.get_port_group(pg_name):
++                        self._clear_rules_for_firewall_group(context, txn,
++                                                             fwg_id)
++                    else:
++                        self._init_firewall_group(txn, fwg_id)
++                    self._add_rules_for_firewall_group(context, txn, fwg_id)
++        elif rule_info and op == ovn_const.OP_ADD:
++            # Process the rule when enabled
++            for fwg_id in list(set(ing_fwg_list + eg_fwg_list)):
++                pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++                with self._nb_ovn.transaction(check_error=True) as txn:
++                    if self._nb_ovn.get_port_group(pg_name):
++                        self._add_rules_for_firewall_group(context, txn,
++                                                           fwg_id,
++                                                           rule_info['id'])
++        elif rule_info:
++            # Delete/Update acls
++            fwg_map = {const.INGRESS_DIRECTION: list(set(ing_fwg_list)),
++                       const.EGRESS_DIRECTION: list(set(eg_fwg_list))}
++            for dir, fwg_list in fwg_map.items():
++                for fwg_id in fwg_list:
++                    pg_name = ovn_utils.ovn_port_group_name(fwg_id)
++                    with self._nb_ovn.transaction(check_error=True) as txn:
++                        if not self._nb_ovn.get_port_group(pg_name):
++                            LOG.warning("Cannot find Port_Group with name: %s",
++                                        pg_name)
++                            continue
++                        ovn_acl.process_rule_for_pg(self._nb_ovn, txn,
++                                                    pg_name, rule_info,
++                                                    dir, op=op)
++        LOG.info("Successfully %(op)s acls by rule %(rule)s "
++                 "and policies %(p_ids)s",
++                 {"op": op,
++                  "rule": rule_info.get('id'),
++                  "p_ids": policy_ids})
++
++    def create_firewall_group_precommit(self, context, firewall_group):
++        if not firewall_group['ports']:
++            LOG.info("No ports bound to firewall_group: %s, "
++                     "set it to inactive", firewall_group['id'])
++            status = const.INACTIVE
++        else:
++            status = const.PENDING_CREATE
++        with self._nb_ovn.transaction(check_error=True) as txn:
++            self._init_firewall_group(txn, firewall_group['id'])
++        firewall_group['status'] = status
++
++    def create_firewall_group_postcommit(self, context, firewall_group):
++        pg_name = ovn_utils.ovn_port_group_name(firewall_group['id'])
++        try:
++            with self._nb_ovn.transaction(check_error=True) as txn:
++                if (firewall_group['ingress_firewall_policy_id'] or
++                        firewall_group['egress_firewall_policy_id']):
++                    # Add rule acls to port_group
++                    self._add_rules_for_firewall_group(context, txn,
++                                                       firewall_group['id'])
++
++                if firewall_group['ports']:
++                    # Add ports to port_group
++                    ovn_acl.update_ports_for_pg(self._nb_ovn,
++                                                txn, pg_name,
++                                                firewall_group['ports'])
++                    firewall_group['status'] = const.ACTIVE
++                    LOG.info("Successfully added ports for firewall_group %s",
++                             firewall_group['id'])
++        except Exception:
++            with self._nb_ovn.transaction(check_error=True) as txn:
++                if self._nb_ovn.get_port_group(pg_name):
++                    txn.add(self._nb_ovn.pg_del(name=pg_name, if_exists=True))
++            LOG.error("Failed to create_firewall_group_postcommit.")
++            raise
++        else:
++            self.firewall_db.update_firewall_group_status(
++                context, firewall_group['id'], firewall_group['status'])
++
++    def update_firewall_group_precommit(self, context, old_firewall_group,
++                                        new_firewall_group):
++        port_updated = (set(new_firewall_group['ports']) !=
++                        set(old_firewall_group['ports']))
++        policies_updated = (
++                new_firewall_group['ingress_firewall_policy_id'] !=
++                old_firewall_group['ingress_firewall_policy_id'] or
++                new_firewall_group['egress_firewall_policy_id'] !=
++                old_firewall_group['egress_firewall_policy_id']
++        )
++        if port_updated or policies_updated:
++            new_firewall_group['status'] = const.PENDING_UPDATE
++
++    def update_firewall_group_postcommit(self, context, old_firewall_group,
++                                         new_firewall_group):
++        if new_firewall_group['status'] != const.PENDING_UPDATE:
++            return
++        old_ports = set(old_firewall_group['ports'])
++        new_ports = set(new_firewall_group['ports'])
++        old_ing_policy = old_firewall_group['ingress_firewall_policy_id']
++        new_ing_policy = new_firewall_group['ingress_firewall_policy_id']
++        old_eg_policy = old_firewall_group['egress_firewall_policy_id']
++        new_eg_policy = new_firewall_group['egress_firewall_policy_id']
++        pg_name = ovn_utils.ovn_port_group_name(new_firewall_group['id'])
++
++        # We except it would be active
++        # If no ports, set it to inactive
++        new_firewall_group['status'] = const.ACTIVE
++        if not new_ports:
++            LOG.info("No ports bound to firewall_group: %s, "
++                     "set it to inactive", new_firewall_group['id'])
++            new_firewall_group['status'] = const.INACTIVE
++
++        # If port_group is not exist, recreate it,
++        # add acls and ports.
++        if not self._nb_ovn.get_port_group(pg_name):
++            with self._nb_ovn.transaction(check_error=True) as txn:
++                self._init_firewall_group(txn, new_firewall_group['id'])
++                if new_ports:
++                    ovn_acl.update_ports_for_pg(self._nb_ovn, txn,
++                                                pg_name, new_ports)
++                if new_ing_policy or new_eg_policy:
++                    self._add_rules_for_firewall_group(
++                        context, txn, new_firewall_group['id'])
++        else:
++            with self._nb_ovn.transaction(check_error=True) as txn:
++                # Process changes of ports
++                if old_ports != new_ports:
++                    ports_add = list(new_ports - old_ports)
++                    ports_delete = list(old_ports - new_ports)
++                    ovn_acl.update_ports_for_pg(self._nb_ovn, txn, pg_name,
++                                                ports_add, ports_delete)
++                # Process changes of policies
++                if (old_ing_policy != new_ing_policy or
++                        old_eg_policy != new_eg_policy):
++                    # Clear rules first
++                    self._clear_rules_for_firewall_group(
++                        context, txn, new_firewall_group['id'])
++                    # Add rules if it has
++                    if new_ing_policy or new_eg_policy:
++                        self._add_rules_for_firewall_group(
++                            context, txn, new_firewall_group['id'])
++
++        self.firewall_db.update_firewall_group_status(
++            context, new_firewall_group['id'],
++            new_firewall_group['status'])
++
++    def delete_firewall_group_precommit(self, context, firewall_group):
++        pg_name = ovn_utils.ovn_port_group_name(firewall_group['id'])
++        with self._nb_ovn.transaction(check_error=True) as txn:
++            if self._nb_ovn.get_port_group(pg_name):
++                txn.add(self._nb_ovn.pg_del(name=pg_name, if_exists=True))
++
++    def update_firewall_policy_postcommit(self, context, old_firewall_policy,
++                                          new_firewall_policy):
++        old_rules = old_firewall_policy['firewall_rules']
++        new_rules = new_firewall_policy['firewall_rules']
++        if old_rules == new_rules:
++            return
++        self._process_acls_by_policies_or_rule(context,
++                                               [new_firewall_policy['id']])
++
++    def update_firewall_rule_postcommit(self, context, old_firewall_rule,
++                                        new_firewall_rule):
++        NEED_UPDATE_FIELDS = ['enabled', 'protocol', 'ip_version',
++                              'source_ip_address', 'destination_ip_address',
++                              'source_port', 'destination_port', 'action']
++        need_update = False
++        for field in NEED_UPDATE_FIELDS:
++            if old_firewall_rule[field] != new_firewall_rule[field]:
++                need_update = True
++        if not need_update:
++            return
++        firewall_policy_ids = old_firewall_rule.get('firewall_policy_id')
++
++        # If rule is enabled, its acls should be inserted
++        # If rule is disabled, its acls should be removed
++        # If rule is always disabled, nothing to do
++        if not old_firewall_rule['enabled'] and new_firewall_rule['enabled']:
++            self._process_acls_by_policies_or_rule(context,
++                                                   firewall_policy_ids,
++                                                   new_firewall_rule)
++            return
++        elif old_firewall_rule['enabled'] and not new_firewall_rule['enabled']:
++            self._process_acls_by_policies_or_rule(context,
++                                                   firewall_policy_ids,
++                                                   old_firewall_rule,
++                                                   ovn_const.OP_DEL)
++            return
++        elif not new_firewall_rule['enabled']:
++            return
++
++        # Process changes of rule
++        self._process_acls_by_policies_or_rule(
++            context, firewall_policy_ids, new_firewall_rule, ovn_const.OP_MOD)
++        LOG.info("Successfully updated acls for rule: %s",
++                 new_firewall_rule['id'])
++
++    def insert_rule_postcommit(self, context, policy_id, rule_info):
++        # Add acls by policy_id
++        self._process_acls_by_policies_or_rule(context, [policy_id])
++
++    def remove_rule_postcommit(self, context, policy_id, rule_info):
++        rule_detail = self.firewall_db.get_firewall_rule(
++            context, rule_info['firewall_rule_id'])
++        self._process_acls_by_policies_or_rule(
++            context, [policy_id], rule_detail, ovn_const.OP_DEL)
+diff --git a/neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/__init__.py b/neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/__init__.py
+new file mode 100644
+index 000000000..e69de29bb
+diff --git a/neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/test_firewall_l3_driver.py b/neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/test_firewall_l3_driver.py
+new file mode 100644
+index 000000000..57d045c3c
+--- /dev/null
++++ b/neutron_fwaas/tests/unit/services/firewall/service_drivers/ovn/test_firewall_l3_driver.py
+@@ -0,0 +1,452 @@
++# Copyright 2022 EasyStack, Inc.
++# All rights reserved.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++
++from unittest import mock
++
++from neutron import extensions as neutron_extensions
++from neutron.tests.unit.extensions import test_l3
++from neutron.tests.unit import fake_resources as fakes
++from neutron_lib import constants as nl_constants
++from neutron_lib import context
++
++from neutron_fwaas.services.firewall.service_drivers import driver_api
++from neutron_fwaas.services.firewall.service_drivers.ovn import \
++    firewall_l3_driver as ovn_driver
++from neutron_fwaas.tests.unit.services.firewall import test_fwaas_plugin_v2
++
++
++OVN_FWAAS_DRIVER = ('neutron_fwaas.services.firewall.service_drivers.'
++                    'ovn.firewall_l3_driver.OVNFwaasDriver')
++
++
++class TestOVNFwaasDriver(test_fwaas_plugin_v2.FirewallPluginV2TestCase,
++                         test_l3.L3NatTestCaseMixin):
++
++    def setUp(self):
++        l3_plugin_str = ('neutron.tests.unit.extensions.test_l3.'
++                         'TestL3NatServicePlugin')
++        l3_plugin = {'l3_plugin_name': l3_plugin_str}
++        super(TestOVNFwaasDriver, self).setUp(
++            service_provider=OVN_FWAAS_DRIVER,
++            extra_service_plugins=l3_plugin,
++            extra_extension_paths=neutron_extensions.__path__)
++        self.db = self.plugin.driver.firewall_db
++        self.mech_driver = mock.MagicMock()
++        self.nb_ovn = fakes.FakeOvsdbNbOvnIdl()
++        self.sb_ovn = fakes.FakeOvsdbSbOvnIdl()
++        self.mech_driver._nb_ovn = self.nb_ovn
++        self.mech_driver._sb_ovn = self.sb_ovn
++
++    @property
++    def _self_context(self):
++        return context.Context('', self._tenant_id)
++
++    def test_create_firewall_group_ports_not_specified(self):
++        with self.firewall_policy(as_admin=True) as fwp, \
++            mock.patch.object(driver_api.FirewallDriver,
++                              '_core_plugin') as mock_ml2:
++            fwp_id = fwp['firewall_policy']['id']
++            mock_ml2.mechanism_manager = mock.MagicMock()
++            mock_ml2.mechanism_manager.mech_drivers = {
++                'ovn': self.mech_driver}
++            with self.firewall_group(
++                    name='test',
++                    ingress_firewall_policy_id=fwp_id,
++                    egress_firewall_policy_id=fwp_id,
++                    admin_state_up=True,
++                    as_admin=True) as fwg1:
++                self.assertEqual(nl_constants.INACTIVE,
++                    fwg1['firewall_group']['status'])
++
++    def test_create_firewall_group_with_ports(self):
++        with self.router(name='router1', admin_state_up=True,
++            tenant_id=self._tenant_id, as_admin=True) as r, \
++                self.subnet(as_admin=True) as s1, \
++                self.subnet(cidr='20.0.0.0/24', as_admin=True) as s2:
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s1['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id1 = body['port_id']
++
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s2['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id2 = body['port_id']
++            fwg_ports = [port_id1, port_id2]
++            with self.firewall_policy(do_delete=False,
++                                      as_admin=True) as fwp, \
++                mock.patch.object(ovn_driver.OVNFwaasDriver,
++                                  '_nb_ovn') as mock_nb_ovn:
++                fwp_id = fwp['firewall_policy']['id']
++                mock_nb_ovn.return_value = self.nb_ovn
++                with self.firewall_group(
++                        name='test',
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        ports=fwg_ports, admin_state_up=True,
++                        do_delete=False, as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.ACTIVE,
++                                     fwg1['firewall_group']['status'])
++
++    def test_update_firewall_group_with_new_ports(self):
++        with self.router(name='router1', admin_state_up=True,
++            tenant_id=self._tenant_id, as_admin=True) as r, \
++                self.subnet(as_admin=True) as s1, \
++                self.subnet(cidr='20.0.0.0/24', as_admin=True) as s2, \
++                self.subnet(cidr='30.0.0.0/24', as_admin=True) as s3:
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s1['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id1 = body['port_id']
++
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s2['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id2 = body['port_id']
++
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s3['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id3 = body['port_id']
++            fwg_ports = [port_id1, port_id2]
++            with self.firewall_policy(do_delete=False,
++                                      as_admin=True) as fwp, \
++                mock.patch.object(ovn_driver.OVNFwaasDriver,
++                                  '_nb_ovn') as mock_nb_ovn:
++                fwp_id = fwp['firewall_policy']['id']
++                mock_nb_ovn.return_value = self.nb_ovn
++                with self.firewall_group(
++                        name='test',
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        ports=fwg_ports, admin_state_up=True,
++                        do_delete=False, as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.ACTIVE,
++                         fwg1['firewall_group']['status'])
++                    data = {'firewall_group': {'ports': [port_id2, port_id3]}}
++                    req = self.new_update_request('firewall_groups', data,
++                                                  fwg1['firewall_group']['id'],
++                                                  context=self._self_context,
++                                                  as_admin=True)
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual(sorted([port_id2, port_id3]),
++                                     sorted(res['firewall_group']['ports']))
++
++                    self.assertEqual(nl_constants.ACTIVE,
++                                     res['firewall_group']['status'])
++
++    def test_update_firewall_group_with_ports_and_policy(self):
++        with self.router(name='router1', admin_state_up=True,
++                         tenant_id=self._tenant_id, as_admin=True) as r, \
++                self.subnet(as_admin=True) as s1, \
++                self.subnet(cidr='20.0.0.0/24', as_admin=True) as s2:
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s1['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id1 = body['port_id']
++
++            body = self._router_interface_action(
++                'add',
++                r['router']['id'],
++                s2['subnet']['id'],
++                None,
++                as_admin=True)
++            port_id2 = body['port_id']
++
++            fwg_ports = [port_id1, port_id2]
++            with self.firewall_rule(do_delete=False, as_admin=True) as fwr, \
++                mock.patch.object(ovn_driver.OVNFwaasDriver,
++                                  '_nb_ovn') as mock_nb_ovn:
++                mock_nb_ovn.return_value = self.nb_ovn
++                with self.firewall_policy(
++                        firewall_rules=[fwr['firewall_rule']['id']],
++                        do_delete=False,
++                        as_admin=True) as fwp:
++                    with self.firewall_group(
++                            name='test',
++                            default_policy=False,
++                            ports=fwg_ports,
++                            admin_state_up=True,
++                            do_delete=False,
++                            as_admin=True) as fwg1:
++                        self.assertEqual(nl_constants.ACTIVE,
++                             fwg1['firewall_group']['status'])
++
++                        fwp_id = fwp["firewall_policy"]["id"]
++                        data = {'firewall_group': {'ports': fwg_ports}}
++                        req = (self.
++                               new_update_request('firewall_groups', data,
++                                                  fwg1['firewall_group']['id'],
++                                                  context=self._self_context,
++                                                  as_admin=True))
++                        res = self.deserialize(self.fmt,
++                                               req.get_response(self.ext_api))
++                        self.assertEqual(nl_constants.ACTIVE,
++                                         res['firewall_group']['status'])
++
++                        data = {'firewall_group': {
++                            'ingress_firewall_policy_id': fwp_id}}
++                        req = (self.
++                               new_update_request('firewall_groups', data,
++                                                  fwg1['firewall_group']['id'],
++                                                  context=self._self_context,
++                                                  as_admin=True))
++                        res = self.deserialize(self.fmt,
++                                               req.get_response(self.ext_api))
++                        self.assertEqual(nl_constants.ACTIVE,
++                                         res['firewall_group']['status'])
++
++    def test_update_firewall_policy_with_new_rules(self):
++        with self.firewall_rule(do_delete=False, as_admin=True) as fwr, \
++            self.firewall_rule(name='firewall_rule2', action='reject',
++                               do_delete=False, as_admin=True) as fwr2, \
++            self.firewall_rule(name='firewall_rule3', action='deny',
++                               do_delete=False, as_admin=True) as fwr3, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            fwr2_id = fwr2['firewall_rule']['id']
++            fwr3_id = fwr3['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id],
++                    do_delete=False,
++                    as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    new_rules = [fwr_id, fwr2_id, fwr3_id]
++                    data = {'firewall_policy': {'firewall_rules':
++                                                new_rules}}
++                    req = (self.
++                           new_update_request('firewall_policies', data,
++                                              fwp_id,
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual(new_rules,
++                                     res['firewall_policy']['firewall_rules'])
++
++    def test_disable_firewall_rule(self):
++        with self.firewall_rule(do_delete=False, as_admin=True) as fwr, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id],
++                    do_delete=False,
++                    as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    data = {'firewall_rule': {'enabled': False}}
++                    req = (self.
++                           new_update_request('firewall_rules', data,
++                                              fwr_id,
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual(False,
++                                     res['firewall_rule']['enabled'])
++
++    def test_enable_firewall_rule(self):
++        with self.firewall_rule(enabled=False, do_delete=False,
++                                as_admin=True) as fwr, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id],
++                    do_delete=False,
++                    as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    data = {'firewall_rule': {'enabled': True}}
++                    req = (self.
++                           new_update_request('firewall_rules', data,
++                                              fwr_id,
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual(True,
++                                     res['firewall_rule']['enabled'])
++
++    def test_update_firewall_rule_with_action(self):
++        with self.firewall_rule(source_port=None, destination_port=None,
++                                protocol='icmp', do_delete=False,
++                                as_admin=True) as fwr, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id],
++                    do_delete=False,
++                    as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    data = {'firewall_rule': {'action': 'deny'}}
++                    req = (self.
++                           new_update_request('firewall_rules', data,
++                                              fwr_id,
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual('deny',
++                                     res['firewall_rule']['action'])
++
++    def test_insert_rule_into_firewall_policy(self):
++        with self.firewall_rule(do_delete=False, as_admin=True) as fwr, \
++            self.firewall_rule(name='firewall_rule2', action='reject',
++                               do_delete=False, as_admin=True) as fwr2, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            fwr2_id = fwr2['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id],
++                    do_delete=False,
++                    as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    data = {'firewall_rule_id': fwr2_id,
++                            'insert_after': fwr_id}
++                    req = (self.
++                           new_update_request('firewall_policies', data,
++                                              fwp_id,
++                                              subresource='insert_rule',
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual([fwr_id, fwr2_id],
++                                     res['firewall_rules'])
++
++    def test_remove_rules_from_firewall_policy(self):
++        with self.firewall_rule(do_delete=False, as_admin=True) as fwr, \
++            self.firewall_rule(name='firewall_rule2', action='reject',
++                               do_delete=False, as_admin=True) as fwr2, \
++            mock.patch.object(ovn_driver.OVNFwaasDriver,
++                              '_nb_ovn') as mock_nb_ovn:
++            mock_nb_ovn.return_value = self.nb_ovn
++            fwr_id = fwr['firewall_rule']['id']
++            fwr2_id = fwr2['firewall_rule']['id']
++            with self.firewall_policy(
++                    firewall_rules=[fwr_id, fwr2_id],
++                    do_delete=False, as_admin=True) as fwp:
++                fwp_id = fwp['firewall_policy']['id']
++                with self.firewall_group(
++                        name='test',
++                        default_policy=False,
++                        admin_state_up=True,
++                        ingress_firewall_policy_id=fwp_id,
++                        egress_firewall_policy_id=fwp_id,
++                        do_delete=False,
++                        as_admin=True) as fwg1:
++                    self.assertEqual(nl_constants.INACTIVE,
++                         fwg1['firewall_group']['status'])
++
++                    data = {'firewall_rule_id': fwr2_id}
++                    req = (self.
++                           new_update_request('firewall_policies', data,
++                                              fwp_id,
++                                              subresource='remove_rule',
++                                              context=self._self_context,
++                                              as_admin=True))
++                    res = self.deserialize(self.fmt,
++                                           req.get_response(self.ext_api))
++
++                    self.assertEqual([fwr_id],
++                                     res['firewall_rules'])
+diff --git a/releasenotes/notes/support-l3-firewall-for-ovn-driver-3f5632ad13cf35fd.yaml b/releasenotes/notes/support-l3-firewall-for-ovn-driver-3f5632ad13cf35fd.yaml
+new file mode 100644
+index 000000000..442252e3b
+--- /dev/null
++++ b/releasenotes/notes/support-l3-firewall-for-ovn-driver-3f5632ad13cf35fd.yaml
+@@ -0,0 +1,15 @@
++---
++features:
++  - L3 stateless firewall support for ML2/OVN driver is implemented.
++issues:
++  - |
++    If the user configures stateful security group rules for VMs ports and
++    stateless L3 firewall rules for gateway ports like this:
++
++        - SG ingress rules: --remote_ip_prefix 0.0.0.0/0
++        - FW ingress rules: --destination_ip_address 0.0.0.0/0 --action allow
++
++    It only opens ingress traffic for another network to access VM, but the
++    reply traffic (egress direction) also passes because it matches the
++    committed conntrack entry.
++    So it only works well with stateless security groups for VMs.
+-- 
+2.50.1
+
