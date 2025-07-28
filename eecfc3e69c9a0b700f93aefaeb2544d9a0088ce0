@@ -16,6 +16,23 @@
       "message": "recheck",
       "revId": "eecfc3e69c9a0b700f93aefaeb2544d9a0088ce0",
       "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    },
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "16594eb3_c6ced1d8",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 534
+      },
+      "writtenOn": "2025-07-28T07:50:34Z",
+      "side": 1,
+      "message": "recheck - tarball is definitely available at https://tarballs.opendev.org/openstack/neutron-fwaas/neutron-fwaas-20.0.1.tar.gz",
+      "revId": "eecfc3e69c9a0b700f93aefaeb2544d9a0088ce0",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
     }
   ]
 }
