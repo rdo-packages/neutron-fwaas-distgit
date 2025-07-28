@@ -1,0 +1,121 @@
+From e988a0e64f2a827380ad8f59f96fd09d4b2eeda0 Mon Sep 17 00:00:00 2001
+From: Sahid Orentino Ferdjaoui <sahid.ferdjaoui@canonical.com>
+Date: Fri, 7 Jun 2019 12:56:02 +0000
+Subject: [PATCH] db: add missing primary key in firewall_group_associations_v2
+
+The model firewall_group_associations_v2 has been introduced but the
+definition is missing a primary key.
+
+In this commit we fixed the definition and add an update script for
+already deployed env. Note: without the PK this creates an error when
+Running Percona with pxc_strict_mode == ENFORCING
+
+Related-Bug: #1831986
+Change-Id: Ib039cb541cbc90a646d2021ce6e7bcd3655b3197
+Signed-off-by: Sahid Orentino Ferdjaoui <sahid.ferdjaoui@canonical.com>
+---
+ ...3_add_pk_firewall_group_associations_v2.py | 53 +++++++++++++++++++
+ .../alembic_migrations/versions/EXPAND_HEAD   |  2 +-
+ .../expand/d6a12e637e28_neutron_fwaas_v2_0.py |  4 ++
+ ...roup_associations_v2-3fddb21b3a19b598.yaml |  7 +++
+ 4 files changed, 65 insertions(+), 1 deletion(-)
+ create mode 100644 neutron_fwaas/db/migration/alembic_migrations/versions/2025.1/expand/2a0d33e9ef63_add_pk_firewall_group_associations_v2.py
+ create mode 100644 releasenotes/notes/add-missing-pk-firewall_group_associations_v2-3fddb21b3a19b598.yaml
+
+diff --git a/neutron_fwaas/db/migration/alembic_migrations/versions/2025.1/expand/2a0d33e9ef63_add_pk_firewall_group_associations_v2.py b/neutron_fwaas/db/migration/alembic_migrations/versions/2025.1/expand/2a0d33e9ef63_add_pk_firewall_group_associations_v2.py
+new file mode 100644
+index 000000000..b280d9ea5
+--- /dev/null
++++ b/neutron_fwaas/db/migration/alembic_migrations/versions/2025.1/expand/2a0d33e9ef63_add_pk_firewall_group_associations_v2.py
+@@ -0,0 +1,53 @@
++# Copyright 2019 Canonical Ltd.
++#
++#    Licensed under the Apache License, Version 2.0 (the "License"); you may
++#    not use this file except in compliance with the License. You may obtain
++#    a copy of the License at
++#
++#         http://www.apache.org/licenses/LICENSE-2.0
++#
++#    Unless required by applicable law or agreed to in writing, software
++#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
++#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
++#    License for the specific language governing permissions and limitations
++#    under the License.
++#
++
++"""add pk firewall_group_associations_v2
++
++Revision ID: 2a0d33e9ef63
++Revises: 6941ce70131e
++Create Date: 2025-01-20 18:00:00.000000
++
++"""
++
++from alembic import op
++from sqlalchemy.engine import reflection
++
++from oslo_log import log as logging
++
++
++# revision identifiers, used by Alembic.
++revision = '2a0d33e9ef63'
++down_revision = '6941ce70131e'
++
++LOG = logging.getLogger(__name__)
++
++
++def upgrade():
++    bind = op.get_bind()
++    insp = reflection.Inspector.from_engine(bind.engine)
++    if 'firewall_group_port_associations_v2' not in insp.get_table_names():
++        return
++    pk = insp.get_pk_constraint('firewall_group_port_associations_v2')
++    if not pk['constrained_columns']:
++        op.create_primary_key(
++            'pk_firewall_group_port_associations_v2',
++            'firewall_group_port_associations_v2',
++            ['firewall_group_id', 'port_id'])
++    else:
++        # Revision '6941ce70131e' has been updated to create the
++        # missing PK. Depending whether the env is already deployed or
++        # not we may or not have to add the primary key.
++        LOG.info("The primary key in firewall_group_port_associations_v2 "
++                 "already exists, continuing.")
+diff --git a/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD b/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
+index 38fcc3e24..be281faf9 100644
+--- a/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
++++ b/neutron_fwaas/db/migration/alembic_migrations/versions/EXPAND_HEAD
+@@ -1 +1 @@
+-6941ce70131e
++2a0d33e9ef63
+diff --git a/neutron_fwaas/db/migration/alembic_migrations/versions/newton/expand/d6a12e637e28_neutron_fwaas_v2_0.py b/neutron_fwaas/db/migration/alembic_migrations/versions/newton/expand/d6a12e637e28_neutron_fwaas_v2_0.py
+index d505fa120..696eb60ee 100644
+--- a/neutron_fwaas/db/migration/alembic_migrations/versions/newton/expand/d6a12e637e28_neutron_fwaas_v2_0.py
++++ b/neutron_fwaas/db/migration/alembic_migrations/versions/newton/expand/d6a12e637e28_neutron_fwaas_v2_0.py
+@@ -103,6 +103,10 @@ def upgrade():
+                   sa.ForeignKey('ports.id', ondelete='CASCADE'),
+                   nullable=False)
+     )
++    op.create_primary_key(
++        'pk_firewall_group_port_associations_v2',
++        'firewall_group_port_associations_v2',
++        ['firewall_group_id', 'port_id'])
+ 
+     op.create_table(
+         'firewall_policy_rule_associations_v2',
+diff --git a/releasenotes/notes/add-missing-pk-firewall_group_associations_v2-3fddb21b3a19b598.yaml b/releasenotes/notes/add-missing-pk-firewall_group_associations_v2-3fddb21b3a19b598.yaml
+new file mode 100644
+index 000000000..927f6dbdc
+--- /dev/null
++++ b/releasenotes/notes/add-missing-pk-firewall_group_associations_v2-3fddb21b3a19b598.yaml
+@@ -0,0 +1,7 @@
++---
++fixes:
++  - |
++    A change has been made in the database structures to add missing
++    primary key for the table 'firewall_group_associations_v2'. This
++    would have the benefit effect to fix an issue with Percona when
++    running in ENFORCING mode.
+-- 
+2.50.1
+
