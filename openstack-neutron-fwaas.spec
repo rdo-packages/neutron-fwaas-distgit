@@ -1,6 +1,8 @@
 %{!?upstream_version: %global upstream_version %{version}%{?milestone}}
 %global modulename neutron_fwaas
 %global servicename neutron-fwaas
+%{?dlrn: %global tarsources neutron-fwaas}
+%{!?dlrn: %global tarsources neutron_fwaas}
 %global type FWaaS
 
 # we are excluding some BRs from automatic generator
@@ -16,7 +18,7 @@ Summary:        Openstack Networking %{type} plugin
 
 License:        Apache-2.0
 URL:            http://launchpad.net/neutron/
-Source0:        https://tarballs.openstack.org/%{servicename}/%{servicename}-%{upstream_version}.tar.gz
+Source0:        https://tarballs.openstack.org/%{servicename}/%{tarsources}-%{upstream_version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  pyproject-rpm-macros
@@ -58,7 +60,7 @@ This package contains Neutron %{type} test files.
 
 
 %prep
-%autosetup -n %{servicename}-%{upstream_version} -S git
+%autosetup -n %{tarsources}-%{upstream_version} -S git
 
 # do not run linters
 sed -i /^[[:space:]]*-c{env:.*_CONSTRAINTS_FILE.*/d tox.ini
