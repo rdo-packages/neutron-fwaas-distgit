@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "93cfa73c_14d1eec0",
+        "filename": "openstack-neutron-fwaas.spec",
+        "patchSetId": 1
+      },
+      "lineNbr": 5,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-10-23T13:26:23Z",
+      "side": 1,
+      "message": "%global rhosp 0 ?",
+      "revId": "d1c4fb4bf1905fbb13a440d8d03089484854a7c7",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    }
+  ]
+}
