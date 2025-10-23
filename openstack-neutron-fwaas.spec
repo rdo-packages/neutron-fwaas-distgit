@@ -55,8 +55,9 @@ Requires:       python3-pyroute2 >= 0.7.2
 Requires:       python3-requests
 Requires:       python3-sqlalchemy >= 1.4.23
 
+%if 0%{?rhosp} == 0
 Requires:       python3-zmq >= 14.3.1
-
+%endif
 
 %description -n python3-%{servicename}
 %{common_desc}
