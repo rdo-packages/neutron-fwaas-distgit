@@ -3,6 +3,8 @@
 %global servicename neutron-fwaas
 %{?dlrn: %global tarsources neutron-fwaas}
 %{!?dlrn: %global tarsources neutron_fwaas}
+# we are excluding some BRs from automatic generator
+%global excluded_brs psycopg2-binary
 %global type FWaaS
 
 # we are excluding some BRs from automatic generator
