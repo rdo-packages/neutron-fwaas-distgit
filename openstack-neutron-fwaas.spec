@@ -6,7 +6,7 @@
 %global type FWaaS
 
 # we are excluding some BRs from automatic generator
-%global excluded_brs doc8 bandit pre-commit hacking flake8-import-order isort pylint sphinx openstackdocstheme
+%global excluded_brs doc8 bandit pre-commit hacking flake8-import-order isort pylint sphinx openstackdocstheme psycopg2-binary
 
 %global common_desc This is a %{type} service plugin for Openstack Neutron (Networking) service.
 
