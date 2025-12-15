@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "bef62bc8_435dcede",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 2
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 403
+      },
+      "writtenOn": "2025-12-15T14:44:10Z",
+      "side": 1,
+      "message": "Triggered with https://opendev.org/openstack/neutron-fwaas/commit/37eae5e11d51794bd44dead705da1571822cb4e7",
+      "revId": "338640988cbcb0daf1923285a34a77e767dd077f",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    }
+  ]
+}
