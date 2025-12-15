@@ -1,0 +1,21 @@
+{
+  "comments": [
+    {
+      "unresolved": false,
+      "key": {
+        "uuid": "46a51ecc_6ed1cdaa",
+        "filename": "/PATCHSET_LEVEL",
+        "patchSetId": 1
+      },
+      "lineNbr": 0,
+      "author": {
+        "id": 534
+      },
+      "writtenOn": "2025-12-15T14:41:58Z",
+      "side": 1,
+      "message": "should be fixed with https://review.rdoproject.org/r/c/openstack/neutron-fwaas-distgit/+/58554",
+      "revId": "476f0cfa4c6435f2bd65645676ffeba830415b3c",
+      "serverId": "270e2033-b340-4cff-9539-693957ebf0e7"
+    }
+  ]
+}
