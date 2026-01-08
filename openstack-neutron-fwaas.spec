@@ -141,3 +141,4 @@ ln -s %{_sysconfdir}/neutron/%{modulename}.conf %{buildroot}%{_datadir}/neutron/
 
 %changelog
 
+# REMOVEME: error caused by commit https://opendev.org/openstack/neutron-fwaas/commit/d6cb448e33e6d23730723339368cd48637128f8c
